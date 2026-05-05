@@ -1,0 +1,37 @@
+<svg width="1600" height="600" viewBox="0 0 1600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E8F8E8"/>
+      <stop offset="1" stop-color="#C8EFC8"/>
+    </linearGradient>
+    <linearGradient id="hill1" x1="0" y1="350" x2="1600" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6FCF65"/>
+      <stop offset="1" stop-color="#4AAE44"/>
+    </linearGradient>
+    <linearGradient id="hill2" x1="0" y1="380" x2="1600" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#53B94E"/>
+      <stop offset="1" stop-color="#348E35"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="600" fill="url(#bg)"/>
+  <circle cx="1350" cy="120" r="55" fill="#FFF59D"/>
+  <path d="M0 380C220 320 420 340 620 380C840 420 1020 420 1240 370C1380 335 1500 340 1600 360V600H0V380Z" fill="url(#hill1)"/>
+  <path d="M0 430C210 380 420 385 630 430C850 475 1060 490 1280 450C1400 430 1505 430 1600 440V600H0V430Z" fill="url(#hill2)"/>
+  <g stroke="#2F7A33" stroke-width="5" stroke-linecap="round">
+    <path d="M180 420V320"/>
+    <path d="M175 350C145 330 150 300 170 280"/>
+    <path d="M185 350C215 330 210 300 190 280"/>
+
+    <path d="M360 440V330"/>
+    <path d="M355 365C325 345 332 315 350 295"/>
+    <path d="M365 365C395 345 388 315 370 295"/>
+
+    <path d="M1080 430V320"/>
+    <path d="M1075 355C1045 335 1052 305 1070 285"/>
+    <path d="M1085 355C1115 335 1108 305 1090 285"/>
+
+    <path d="M1300 450V340"/>
+    <path d="M1295 375C1265 355 1272 325 1290 305"/>
+    <path d="M1305 375C1335 355 1328 325 1310 305"/>
+  </g>
+</svg>
