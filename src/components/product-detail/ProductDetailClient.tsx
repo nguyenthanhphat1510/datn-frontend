@@ -2,20 +2,28 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Product } from "@/types/product";
 import { fmt } from "@/lib/format";
 import { Stars } from "@/components/Stars";
 import { BADGE_STYLES, ICart, IHeart, IHome, ILeaf } from "@/components/icons";
 import { ProductCard } from "@/components/home/ProductItem";
 import { fetchProducts } from "@/services/products";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 type Tab = "mo-ta" | "huong-dan";
 
 export default function ProductDetailClient({ product }: { product: Product }) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { addToCart } = useCart();
   const [activeImage, setActiveImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState<Tab>("mo-ta");
   const [carted, setCarted] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [cartError, setCartError] = useState("");
   const [related, setRelated] = useState<Product[]>([]);
 
   const images = product.images ?? [];
@@ -38,11 +46,26 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       .catch(() => setRelated([]));
   }, [product._id, product.categoryId]);
 
-  const handleAddToCart = () => {
-    if (outOfStock) return;
-    setCarted(true);
-    console.log("Add to cart:", product._id, "qty:", qty);
-    setTimeout(() => setCarted(false), 1500);
+  const handleAddToCart = async () => {
+    if (outOfStock || adding) return;
+    // Cart API cần đăng nhập → chuyển hướng nếu chưa login
+    if (!user) {
+      router.push("/dang-nhap");
+      return;
+    }
+    setAdding(true);
+    setCartError("");
+    try {
+      await addToCart(product._id, qty);
+      setCarted(true);
+      setTimeout(() => setCarted(false), 1500);
+    } catch (err) {
+      setCartError(
+        err instanceof Error ? err.message : "Không thể thêm vào giỏ hàng",
+      );
+    } finally {
+      setAdding(false);
+    }
   };
 
   const changeQty = (delta: number) => {
@@ -214,8 +237,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleAddToCart}
-                disabled={outOfStock}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${
+                disabled={outOfStock || adding}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition disabled:opacity-60 ${
                   outOfStock
                     ? "cursor-not-allowed bg-gray-200 text-gray-400"
                     : carted
@@ -224,7 +247,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 }`}
               >
                 <ICart />
-                {outOfStock ? "Hết hàng" : carted ? "Đã thêm!" : "Thêm vào giỏ"}
+                {outOfStock
+                  ? "Hết hàng"
+                  : adding
+                  ? "Đang thêm..."
+                  : carted
+                  ? "Đã thêm!"
+                  : "Thêm vào giỏ"}
               </button>
               <button
                 disabled={outOfStock}
@@ -239,6 +268,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 <IHeart />
               </button>
             </div>
+
+            {cartError && (
+              <p className="text-sm font-medium text-red-500">{cartError}</p>
+            )}
 
             <hr className="border-gray-100" />
 

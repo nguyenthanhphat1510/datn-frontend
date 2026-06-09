@@ -7,195 +7,247 @@ const products = [
   {
     img: "/phanbon.png",
     label: "Phân Đạm",
-    sub: "Cho lá xanh",
-    accent: "#15803d",
+    sub: "Cho lá xanh tốt",
+    accent: "#10b981",
   },
   {
     img: "/phanbon.png",
     label: "Phân NPK",
     sub: "Cân đối toàn diện",
-    accent: "#15803d",
+    accent: "#059669",
   },
   {
     img: "/phanbon.png",
     label: "Hữu cơ vi sinh",
-    sub: "Cải tạo đất",
-    accent: "#65a30d",
+    sub: "Cải tạo đất phì nhiêu",
+    accent: "#84cc16",
+  },
+  {
+    img: "/phanbon.png",
+    label: "Phân Kali",
+    sub: "Đòng to, hạt chắc vàng",
+    accent: "#d97706",
   },
 ];
 
 export default function PhanBonHero() {
   return (
     <section
-      className="relative w-full overflow-hidden py-6 sm:py-8 lg:py-10"
+      className="relative w-full overflow-hidden py-12 sm:py-16 lg:py-20"
       style={{
         background:
-          "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 35%, #a7f3d0 70%, #6ee7b7 100%)",
+          "linear-gradient(135deg, #ffffff 0%, #fafefc 30%, #f0fcf6 65%, #e1faee 100%)",
       }}
     >
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+      {/* === Light Ambient Green Glows === */}
+      <div
+        className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[100px] pointer-events-none z-0 -mr-24 -mt-24 opacity-50"
+        style={{ background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute bottom-0 left-0 w-[450px] h-[450px] rounded-full blur-[90px] pointer-events-none z-0 -ml-20 -mb-20 opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(132,204,22,0.06) 0%, transparent 70%)" }}
+      />
+      <div
+        className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full blur-[100px] pointer-events-none z-0 -translate-y-1/2 opacity-30"
+        style={{ background: "radial-gradient(circle, rgba(56,189,248,0.04) 0%, transparent 70%)" }}
+      />
+
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(16,185,129,0.03)_1px,transparent_1px)] [background-size:24px_24px] opacity-75 z-0 pointer-events-none" />
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 z-10">
         <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
+          
           {/* ── Bên trái: text ── */}
-          <div className="flex-shrink-0 lg:w-[480px] xl:w-[540px] space-y-5 text-left">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3.5 py-1.5 border border-emerald-700/15 shadow-sm">
-              <span className="text-sm">🌾</span>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-900">
-                Kính chào bà con nông dân
+          <div className="flex-shrink-0 lg:w-[480px] xl:w-[540px] space-y-6 text-left">
+            
+            {/* Tag kính chào bà con */}
+            <div
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/10 shadow-[0_2px_10px_rgba(4,120,87,0.03)]"
+              style={{ background: "rgba(16,185,129,0.04)" }}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
+                🌾 Kính chào bà con nông dân
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.6rem] xl:text-5xl font-extrabold leading-[1.15] text-stone-900">
-              Phân bón cho
+            {/* Tiêu đề chính */}
+            <h1 className="text-3xl sm:text-4xl lg:text-[2.6rem] xl:text-5xl font-extrabold leading-[1.15] text-slate-800">
+              Phân Bón Cho
               <br />
-              <span className="relative inline-block">
-                <span className="relative z-10 text-[#15803d]">bà con nông dân</span>
+              <span className="relative inline-block my-1">
+                <span
+                  className="bg-clip-text text-transparent font-black"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(90deg, #059669 0%, #10b981 50%, #059669 100%)",
+                    backgroundSize: "200% auto",
+                    animation: "shimmerText 7s linear infinite",
+                  }}
+                >
+                  Bà Con Nông Dân
+                </span>
                 <svg
                   viewBox="0 0 360 14"
-                  className="absolute -bottom-1 left-0 w-full"
+                  className="absolute -bottom-1.5 left-0 w-full"
                   preserveAspectRatio="none"
                 >
                   <path
                     d="M3 8 Q90 2 180 7 T358 6"
                     fill="none"
-                    stroke="#84cc16"
+                    stroke="url(#lightGreenGradient)"
                     strokeWidth="4"
                     strokeLinecap="round"
-                    opacity="0.7"
+                    opacity="0.8"
                   />
+                  <defs>
+                    <linearGradient id="lightGreenGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="50%" stopColor="#059669" />
+                      <stop offset="100%" stopColor="#84cc16" />
+                    </linearGradient>
+                  </defs>
                 </svg>
               </span>
               <br />
-              mùa nào cũng <span className="text-lime-700">bội thu</span>
+              mùa nào cũng <span className="text-[#15803d] font-black drop-shadow-[0_1px_5px_rgba(21,128,61,0.15)]">bội thu</span>
             </h1>
 
+            {/* Divider thanh mảnh */}
             <div
               className="h-[3px] w-20 rounded-full"
-              style={{ background: "linear-gradient(90deg, #047857, #15803d, #84cc16)" }}
+              style={{ background: "linear-gradient(90deg, #059669, #10b981, #84cc16)" }}
             />
 
-            <p className="text-sm sm:text-[15px] leading-relaxed max-w-md text-stone-700">
-              Bao phân chính hãng, giá phải chăng. Tụi tui đồng hành cùng nhà nông từ lúc xuống giống đến khi gặt về,
-              giúp lúa trổ đều, hạt mẩy, bao no.
+            {/* Đoạn mô tả ngắn gọn chất lượng */}
+            <p className="text-sm sm:text-[15px] leading-relaxed max-w-md text-slate-600">
+              Bao phân chính hãng, giá cạnh tranh nhất thị trường. TP Agri tự hào đồng hành cùng nhà nông từ khi làm đất, xuống giống đến ngày lúa chín trĩu bông, mang lại vụ mùa ấm no, trọn vẹn.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            {/* Hai nút hành động nổi bật */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
               <Link
                 href="#catalog"
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-[#15803d] px-6 text-sm font-bold text-white shadow-md transition hover:bg-[#166534] hover:shadow-lg"
+                className="group inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 px-6 text-sm font-bold text-white shadow-[0_4px_18px_rgba(16,185,129,0.2)] transition duration-300 hover:from-emerald-700 hover:to-green-700 hover:shadow-[0_6px_22px_rgba(16,185,129,0.3)] hover:scale-[1.03]"
               >
                 <span>Xem bao phân</span>
-                <span>→</span>
+                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
               </Link>
               <Link
                 href="#calculator"
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-emerald-700/30 bg-white/70 px-5 text-sm font-bold text-emerald-900 transition hover:bg-white hover:border-emerald-700"
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-emerald-500/20 bg-white/80 backdrop-blur-md px-6 text-sm font-bold text-emerald-800 shadow-[0_2px_10px_rgba(4,120,87,0.02)] transition duration-300 hover:bg-emerald-50/50 hover:border-emerald-500/40 hover:scale-[1.03]"
               >
                 Tính lượng bón
               </Link>
             </div>
 
-            <div className="flex gap-5 pt-3">
+            {/* Các con số thống kê uy tín */}
+            <div className="flex gap-6 pt-5 border-t border-emerald-500/10">
               <div className="flex flex-col">
-                <span className="text-2xl font-black text-[#15803d]">50+</span>
-                <span className="text-[11px] text-stone-500 font-semibold uppercase tracking-wide mt-0.5">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-700">50+</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
                   Sản phẩm
                 </span>
               </div>
-              <div className="w-px self-stretch bg-emerald-700/20" />
+              <div className="w-px self-stretch bg-emerald-500/15" />
               <div className="flex flex-col">
-                <span className="text-2xl font-black text-emerald-700">100%</span>
-                <span className="text-[11px] text-stone-500 font-semibold uppercase tracking-wide mt-0.5">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600">100%</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
                   Chính hãng
                 </span>
               </div>
-              <div className="w-px self-stretch bg-emerald-700/20" />
+              <div className="w-px self-stretch bg-emerald-500/15" />
               <div className="flex flex-col">
-                <span className="text-2xl font-black text-lime-700">24/7</span>
-                <span className="text-[11px] text-stone-500 font-semibold uppercase tracking-wide mt-0.5">
-                  Tư vấn
+                <span className="text-2xl sm:text-3xl font-black text-lime-600">24/7</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                  Tư vấn kỹ thuật
                 </span>
               </div>
             </div>
           </div>
 
-          {/* ── Bên phải: 3 ảnh xếp lệch tầng ── */}
-          <div className="flex-1 w-full relative flex items-center justify-center min-h-[280px] lg:min-h-[320px]">
-            {/* Ảnh giữa - to nhất, đứng trước */}
-            <div className="relative z-30">
-              <div className="absolute inset-0 -m-3 rounded-3xl bg-white shadow-2xl ring-1 ring-emerald-700/10" />
-              <div className="relative w-44 h-56 lg:w-52 lg:h-64 flex items-center justify-center">
-                <Image
-                  src={products[1].img}
-                  alt={products[1].label}
-                  fill
-                  sizes="(max-width: 1024px) 224px, 256px"
-                  priority
-                  className="object-contain p-4 drop-shadow-[0_12px_15px_rgba(120,53,15,0.2)]"
-                />
-              </div>
-              {/* Tag tên */}
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-4 py-1.5 shadow-md ring-1 ring-emerald-700/15 z-10">
-                <p className="text-xs font-black text-stone-800">{products[1].label}</p>
-                <p className="text-[10px] font-semibold text-center" style={{ color: products[1].accent }}>
-                  {products[1].sub}
-                </p>
-              </div>
-            </div>
-
-            {/* Ảnh trái - nhỏ hơn, lệch xuống, xoay nhẹ */}
-            <div
-              className="absolute left-0 lg:left-4 top-1/2 -translate-y-1/3 z-20"
-              style={{ transform: "translateY(-20%) rotate(-6deg)" }}
-            >
-              <div className="absolute inset-0 -m-2 rounded-2xl bg-white shadow-xl ring-1 ring-emerald-700/10" />
-              <div className="relative w-28 h-36 lg:w-32 lg:h-44 flex items-center justify-center">
-                <Image
-                  src={products[0].img}
-                  alt={products[0].label}
-                  fill
-                  sizes="(max-width: 1024px) 144px, 176px"
-                  className="object-contain p-3 drop-shadow-[0_10px_12px_rgba(120,53,15,0.18)]"
-                />
-              </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-700 px-3 py-1 shadow-md z-10">
-                <p className="text-[10px] font-black uppercase tracking-wider text-white">
-                  {products[0].label}
-                </p>
-              </div>
-            </div>
-
-            {/* Ảnh phải - nhỏ hơn, lệch lên, xoay nhẹ */}
-            <div
-              className="absolute right-0 lg:right-4 top-1/2 z-20"
-              style={{ transform: "translateY(-65%) rotate(8deg)" }}
-            >
-              <div className="absolute inset-0 -m-2 rounded-2xl bg-white shadow-xl ring-1 ring-emerald-700/10" />
-              <div className="relative w-24 h-32 lg:w-28 lg:h-40 flex items-center justify-center">
-                <Image
-                  src={products[2].img}
-                  alt={products[2].label}
-                  fill
-                  sizes="(max-width: 1024px) 128px, 160px"
-                  className="object-contain p-3 drop-shadow-[0_10px_12px_rgba(120,53,15,0.18)]"
-                />
-              </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-lime-700 px-3 py-1 shadow-md z-10">
-                <p className="text-[10px] font-black uppercase tracking-wider text-white">
-                  {products[2].label}
-                </p>
-              </div>
-            </div>
-
+          {/* ── Bên phải: 4 ảnh xếp theo dạng lưới responsive tránh bị đè chồng chéo ── */}
+          <div className="flex-1 w-full relative z-10">
+            
             {/* Vầng nền mờ sau cùng */}
             <div
-              className="absolute h-64 w-64 lg:h-72 lg:w-72 rounded-full -z-0"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-72 w-72 lg:h-80 lg:w-80 rounded-full pointer-events-none opacity-60 -z-10"
               style={{
                 background:
-                  "radial-gradient(circle, rgba(254,243,199,0.9) 0%, rgba(253,224,71,0.25) 50%, transparent 80%)",
+                  "radial-gradient(circle, rgba(167,243,208,0.35) 0%, rgba(209,250,229,0.1) 50%, transparent 75%)",
               }}
             />
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5 w-full py-6">
+              {products.map((product, idx) => {
+                const isEven = idx % 2 === 0;
+                return (
+                  <div
+                    key={product.label}
+                    className={`transition-all duration-500 ${
+                      isEven ? "translate-y-[-12px]" : "translate-y-[12px]"
+                    }`}
+                  >
+                    <div
+                      className="group relative overflow-hidden rounded-2xl bg-white border border-emerald-500/10 shadow-[0_8px_25px_rgba(4,120,87,0.04)] transition-all duration-500 hover:-translate-y-2 cursor-pointer hover:shadow-[0_15px_35px_rgba(4,120,87,0.1)]"
+                      style={{
+                        animation: "floatCard 6s ease-in-out infinite",
+                        animationDelay: `${idx * 0.4}s`,
+                      }}
+                    >
+                      {/* Aspect Ratio Container for image */}
+                      <div className="relative w-full aspect-[4/5] flex items-center justify-center p-3 bg-gradient-to-b from-emerald-50/10 to-transparent">
+                        <Image
+                          src={product.img}
+                          alt={product.label}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+                          priority={idx === 1}
+                          className="object-contain p-2 drop-shadow-[0_6px_10px_rgba(4,120,87,0.05)] transition-transform duration-500 group-hover:scale-[1.06]"
+                        />
+                      </div>
+                      
+                      {/* Bottom info section */}
+                      <div className="p-3 text-center border-t border-emerald-500/5 bg-white">
+                        <p className="text-xs font-black text-slate-800 tracking-wide">{product.label}</p>
+                        <p className="text-[10px] font-bold mt-0.5" style={{ color: product.accent }}>
+                          {product.sub}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
         </div>
+      </div>
+
+      {/* === Keyframe Animations & Styles === */}
+      <style>{`
+        @keyframes shimmerText {
+          0%   { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes floatCard {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-8px); }
+        }
+      `}</style>
+
+      {/* Wave separator matching the parent page background color (#f9fcfb) */}
+      <div className="absolute bottom-0 left-0 w-full leading-none z-10 translate-y-1 pointer-events-none">
+        <svg
+          viewBox="0 0 1440 32"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          className="w-full h-6 sm:h-8 text-[#f9fcfb] fill-current"
+        >
+          <path d="M0,24 C320,32 640,32 960,16 C1120,8 1280,8 1440,24 L1440,32 L0,32 Z" />
+        </svg>
       </div>
     </section>
   );

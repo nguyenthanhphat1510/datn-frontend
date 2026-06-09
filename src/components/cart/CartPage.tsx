@@ -2,58 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
-/* ─────────────────────────────────────────
-   Types
-───────────────────────────────────────── */
-interface CartItem {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  badge?: string;
-}
-
-/* ─────────────────────────────────────────
-   Mock data
-───────────────────────────────────────── */
-const INITIAL_ITEMS: CartItem[] = [
-  {
-    id: 1,
-    name: "THUỐC TRỪ SÂU VIMICPC 25WP",
-    category: "Thuốc bảo vệ thực vật",
-    price: 80000,
-    quantity: 2,
-    badge: "Sale",
-  },
-  {
-    id: 7,
-    name: "Phân NPK 16-16-8 Đầu Trâu",
-    category: "Phân bón",
-    price: 320000,
-    quantity: 1,
-    badge: "Hot",
-  },
-  {
-    id: 9,
-    name: "Phân DAP 18-46 Đình Vũ",
-    category: "Phân bón",
-    price: 780000,
-    originalPrice: 850000,
-    quantity: 1,
-    badge: "Mới",
-  },
-  {
-    id: 3,
-    name: "Chess® 50WG",
-    category: "Thuốc bảo vệ thực vật",
-    price: 90000,
-    originalPrice: 100000,
-    quantity: 3,
-  },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import type { CartItemResponse } from "@/services/cart";
 
 const SHIPPING_FEE = 30000;
 const FREE_SHIP_THRESHOLD = 500000;
@@ -241,10 +192,12 @@ function IEmpty() {
 ───────────────────────────────────────── */
 function QuantityStepper({
   quantity,
+  disabled,
   onIncrease,
   onDecrease,
 }: {
   quantity: number;
+  disabled?: boolean;
   onIncrease: () => void;
   onDecrease: () => void;
 }) {
@@ -252,7 +205,7 @@ function QuantityStepper({
     <div className="flex items-center gap-0 rounded-lg border border-gray-200 overflow-hidden">
       <button
         onClick={onDecrease}
-        disabled={quantity <= 1}
+        disabled={disabled || quantity <= 1}
         className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-medium"
         aria-label="Giảm số lượng"
       >
@@ -263,7 +216,8 @@ function QuantityStepper({
       </span>
       <button
         onClick={onIncrease}
-        className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 text-lg font-medium"
+        disabled={disabled}
+        className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-medium"
         aria-label="Tăng số lượng"
       >
         +
@@ -278,23 +232,20 @@ function QuantityStepper({
 function CartItemRow({
   item,
   checked,
+  disabled,
   onCheck,
   onIncrease,
   onDecrease,
   onRemove,
 }: {
-  item: CartItem;
+  item: CartItemResponse;
   checked: boolean;
+  disabled?: boolean;
   onCheck: () => void;
   onIncrease: () => void;
   onDecrease: () => void;
   onRemove: () => void;
 }) {
-  const subtotal = item.price * item.quantity;
-  const saved = item.originalPrice
-    ? (item.originalPrice - item.price) * item.quantity
-    : 0;
-
   return (
     <div
       className={`group flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 ${
@@ -317,32 +268,30 @@ function CartItemRow({
 
       {/* Product Image */}
       <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50 to-teal-100">
-        <ILeaf />
-        {item.badge && (
-          <span className="absolute left-1 top-1 rounded px-1 py-0.5 text-[9px] font-bold uppercase text-white bg-[#007e42]">
-            {item.badge}
-          </span>
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <ILeaf />
         )}
       </div>
 
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Link
-          href={`/san-pham/${item.id}`}
+          href={`/san-pham/${item.productId}`}
           className="line-clamp-2 text-sm font-bold uppercase leading-snug text-gray-800 transition hover:text-[#007e42]"
         >
           {item.name}
         </Link>
-        <span className="text-xs text-gray-400">{item.category}</span>
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-[#007e42]">
             {fmt(item.price)}
           </span>
-          {item.originalPrice && (
-            <span className="text-xs text-gray-400 line-through">
-              {fmt(item.originalPrice)}
-            </span>
-          )}
         </div>
       </div>
 
@@ -350,26 +299,23 @@ function CartItemRow({
       <div className="flex shrink-0 flex-col items-center gap-2">
         <QuantityStepper
           quantity={item.quantity}
+          disabled={disabled}
           onIncrease={onIncrease}
           onDecrease={onDecrease}
         />
-        {saved > 0 && (
-          <span className="text-[10px] text-emerald-600 font-medium">
-            Tiết kiệm {fmt(saved)}
-          </span>
-        )}
       </div>
 
       {/* Subtotal */}
       <div className="w-28 shrink-0 text-right">
-        <p className="text-base font-bold text-gray-800">{fmt(subtotal)}</p>
+        <p className="text-base font-bold text-gray-800">{fmt(item.subtotal)}</p>
       </div>
 
       {/* Remove */}
       <button
         onClick={onRemove}
+        disabled={disabled}
         title="Xóa sản phẩm"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-300 transition hover:bg-red-50 hover:text-red-500"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-300 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
       >
         <ITrash />
       </button>
@@ -378,7 +324,7 @@ function CartItemRow({
 }
 
 /* ─────────────────────────────────────────
-   Coupon Input
+   Coupon Input (UI tĩnh — chưa nối backend)
 ───────────────────────────────────────── */
 function CouponInput() {
   const [code, setCode] = useState("");
@@ -484,9 +430,7 @@ function OrderSummary({
       {/* Price rows */}
       <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
         <div className="flex justify-between text-sm text-gray-600">
-          <span>
-            Tạm tính ({checkedCount} sản phẩm)
-          </span>
+          <span>Tạm tính ({checkedCount} sản phẩm)</span>
           <span className="font-medium text-gray-800">{fmt(subtotal)}</span>
         </div>
         <div className="flex justify-between text-sm text-gray-600">
@@ -515,7 +459,7 @@ function OrderSummary({
         </span>
       </div>
 
-      {/* Checkout button */}
+      {/* Checkout button — chưa nối đặt hàng (ngoài phạm vi) */}
       <button
         disabled={checkedCount === 0}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#007e42] py-3 text-sm font-bold text-white shadow-md shadow-[#007e42]/25 transition hover:bg-[#005f32] active:scale-[.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
@@ -548,9 +492,7 @@ function EmptyCart() {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-24 text-center">
       <IEmpty />
-      <h3 className="mt-4 text-lg font-bold text-gray-700">
-        Giỏ hàng trống
-      </h3>
+      <h3 className="mt-4 text-lg font-bold text-gray-700">Giỏ hàng trống</h3>
       <p className="mt-1 text-sm text-gray-400">
         Bạn chưa thêm sản phẩm nào vào giỏ hàng
       </p>
@@ -566,72 +508,115 @@ function EmptyCart() {
 }
 
 /* ─────────────────────────────────────────
+   Trạng thái chưa đăng nhập
+───────────────────────────────────────── */
+function NeedLogin() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white py-24 text-center">
+      <IEmpty />
+      <h3 className="mt-4 text-lg font-bold text-gray-700">
+        Vui lòng đăng nhập
+      </h3>
+      <p className="mt-1 text-sm text-gray-400">
+        Bạn cần đăng nhập để xem giỏ hàng của mình
+      </p>
+      <Link
+        href="/dang-nhap"
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#007e42] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#007e42]/25 transition hover:bg-[#005f32]"
+      >
+        Đăng nhập
+      </Link>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
    Main CartPage
 ───────────────────────────────────────── */
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>(INITIAL_ITEMS);
-  const [checkedIds, setCheckedIds] = useState<Set<number>>(
-    new Set(INITIAL_ITEMS.map((i) => i.id))
-  );
+  const { user, loading: authLoading } = useAuth();
+  const { cart, loading, updateItem, removeItem } = useCart();
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const items = cart?.items ?? [];
 
   /* helpers */
-  function toggleCheck(id: number) {
+  function toggleCheck(productId: string) {
     setCheckedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
       return next;
     });
   }
 
   function toggleAll() {
     if (checkedIds.size === items.length) setCheckedIds(new Set());
-    else setCheckedIds(new Set(items.map((i) => i.id)));
+    else setCheckedIds(new Set(items.map((i) => i.productId)));
   }
 
-  function increase(id: number) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
-    );
+  // Bọc mỗi mutation để chặn double-click và hiển thị lỗi backend
+  async function run(action: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function decrease(id: number) {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
+  function increase(item: CartItemResponse) {
+    void run(() => updateItem(item.productId, item.quantity + 1));
   }
 
-  function remove(id: number) {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  function decrease(item: CartItemResponse) {
+    if (item.quantity <= 1) return;
+    void run(() => updateItem(item.productId, item.quantity - 1));
+  }
+
+  function remove(productId: string) {
+    void run(() => removeItem(productId));
     setCheckedIds((prev) => {
       const next = new Set(prev);
-      next.delete(id);
+      next.delete(productId);
       return next;
     });
   }
 
-  function removeChecked() {
-    setItems((prev) => prev.filter((item) => !checkedIds.has(item.id)));
+  async function removeChecked() {
+    const ids = items
+      .map((i) => i.productId)
+      .filter((id) => checkedIds.has(id));
+    await run(async () => {
+      for (const id of ids) {
+        await removeItem(id);
+      }
+    });
     setCheckedIds(new Set());
   }
 
-  /* derived */
-  const subtotal = items
-    .filter((i) => checkedIds.has(i.id))
-    .reduce((sum, i) => sum + i.price * i.quantity, 0);
-
-  const checkedCount = items.filter((i) => checkedIds.has(i.id)).reduce(
-    (sum, i) => sum + i.quantity,
-    0
-  );
-
+  /* derived — chỉ tính trên item đã tick */
+  const checkedItems = items.filter((i) => checkedIds.has(i.productId));
+  const subtotal = checkedItems.reduce((sum, i) => sum + i.subtotal, 0);
+  const checkedCount = checkedItems.reduce((sum, i) => sum + i.quantity, 0);
   const allChecked = items.length > 0 && checkedIds.size === items.length;
+
+  /* ── Chưa đăng nhập ── */
+  if (!authLoading && !user) {
+    return (
+      <section className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-7xl">
+          <NeedLogin />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
@@ -655,7 +640,17 @@ export default function CartPage() {
           </div>
         </div>
 
-        {items.length === 0 ? (
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {error}
+          </div>
+        )}
+
+        {loading && items.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-24 text-center text-sm text-gray-400">
+            Đang tải giỏ hàng...
+          </div>
+        ) : items.length === 0 ? (
           <EmptyCart />
         ) : (
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -683,7 +678,8 @@ export default function CartPage() {
                 {checkedIds.size > 0 && (
                   <button
                     onClick={removeChecked}
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
+                    disabled={busy}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 disabled:opacity-40"
                   >
                     <ITrash />
                     Xóa đã chọn ({checkedIds.size})
@@ -695,13 +691,14 @@ export default function CartPage() {
               <div className="flex flex-col gap-2.5">
                 {items.map((item) => (
                   <CartItemRow
-                    key={item.id}
+                    key={item.productId}
                     item={item}
-                    checked={checkedIds.has(item.id)}
-                    onCheck={() => toggleCheck(item.id)}
-                    onIncrease={() => increase(item.id)}
-                    onDecrease={() => decrease(item.id)}
-                    onRemove={() => remove(item.id)}
+                    checked={checkedIds.has(item.productId)}
+                    disabled={busy}
+                    onCheck={() => toggleCheck(item.productId)}
+                    onIncrease={() => increase(item)}
+                    onDecrease={() => decrease(item)}
+                    onRemove={() => remove(item.productId)}
                   />
                 ))}
               </div>

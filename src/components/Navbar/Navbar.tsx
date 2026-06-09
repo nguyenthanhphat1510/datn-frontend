@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import UserMenu from "./UserMenu";
+import { useCart } from "@/contexts/CartContext";
 
 /* ─────────────────────────────────────────
    SVG Icons
@@ -15,17 +17,6 @@ function IconCart() {
       <circle cx="8" cy="21" r="1" />
       <circle cx="19" cy="21" r="1" />
       <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-    </svg>
-  );
-}
-
-function IconUser() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
   );
 }
@@ -164,6 +155,7 @@ function SearchBar({ className = "" }: { className?: string }) {
 ───────────────────────────────────────── */
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { itemCount } = useCart();
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#005f32] bg-[#007e42] shadow-md">
@@ -219,19 +211,19 @@ export default function Navbar() {
           <Link
             href="/gio-hang"
             aria-label="Giỏ hàng"
-            className="flex h-10 items-center justify-center gap-2 rounded-full border border-transparent bg-transparent px-4 text-sm font-medium text-white/90 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
+            className="relative flex h-10 items-center justify-center gap-2 rounded-full border border-transparent bg-transparent px-4 text-sm font-medium text-white/90 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
           >
-            <IconCart />
+            <span className="relative">
+              <IconCart />
+              {itemCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#007e42]">
+                  {itemCount}
+                </span>
+              )}
+            </span>
             Giỏ hàng
           </Link>
-          <Link
-            href="/dang-nhap"
-            aria-label="Đăng nhập"
-            className="flex h-10 items-center justify-center gap-2 rounded-full border border-transparent bg-transparent px-4 text-sm font-medium text-white/90 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
-          >
-            <IconUser />
-            Đăng nhập
-          </Link>
+          <UserMenu variant="desktop" />
         </div>
 
         {/* ── Hamburger — mobile ── */}
@@ -279,15 +271,13 @@ export default function Navbar() {
               >
                 <IconCart />
                 Giỏ hàng
+                {itemCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-bold text-[#007e42]">
+                    {itemCount}
+                  </span>
+                )}
               </Link>
-              <Link
-                href="/dang-nhap"
-                onClick={() => setMenuOpen(false)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-[#007e42] transition hover:bg-green-50"
-              >
-                <IconUser />
-                Đăng nhập
-              </Link>
+              <UserMenu variant="mobile" onNavigate={() => setMenuOpen(false)} />
             </div>
           </div>
         </div>

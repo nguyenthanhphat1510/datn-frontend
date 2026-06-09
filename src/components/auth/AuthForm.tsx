@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { API_URL } from "@/lib/api";
 
 type Mode = "login" | "register";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 function IconMail() {
   return (
@@ -75,6 +75,9 @@ function IconGoogle() {
 }
 
 export default function AuthForm() {
+  const router = useRouter();
+  const { login, register } = useAuth();
+
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -115,49 +118,31 @@ export default function AuthForm() {
 
     setLoading(true);
     try {
-      const endpoint = isLogin ? "/auth/login" : "/auth/register";
-      const body = isLogin
-        ? { email, password }
-        : { email, password, fullName: fullName || undefined };
-
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const msg = Array.isArray(data?.message)
-          ? data.message.join(", ")
-          : data?.message || "Có lỗi xảy ra. Vui lòng thử lại.";
-        setError(msg);
-        return;
-      }
-
-      if (data?.access_token) {
-        localStorage.setItem("access_token", data.access_token);
-      }
-      if (data?.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password, fullName || undefined);
       }
 
       setSuccess(
-        isLogin ? "Đăng nhập thành công! Đang chuyển trang..." : "Đăng ký thành công! Đang chuyển trang..."
+        isLogin
+          ? "Đăng nhập thành công! Đang chuyển trang..."
+          : "Đăng ký thành công! Đang chuyển trang...",
       );
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 800);
-    } catch {
-      setError("Không thể kết nối máy chủ. Vui lòng kiểm tra mạng.");
+      setTimeout(() => router.push("/"), 800);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   }
 
   function handleGoogle() {
-    window.location.href = `${API_BASE}/auth/google`;
+    window.location.href = `${API_URL}/auth/google`;
   }
 
   return (
