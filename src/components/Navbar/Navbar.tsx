@@ -189,7 +189,7 @@ export default function Navbar() {
               <Link
                 key={href}
                 href={href}
-                className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-medium text-white/90 transition hover:bg-white/15 hover:text-white"
+                className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-white/90 transition hover:bg-white/15 hover:text-white"
               >
                 <span className="transition group-hover:scale-110">
                   <Icon />

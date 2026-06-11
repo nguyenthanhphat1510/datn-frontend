@@ -13,14 +13,13 @@ import {
   IHome,
   IList,
   ILeaf,
-  ISearch,
 } from "@/components/icons";
 import { ProductCard, ProductRow } from "./ProductItem";
 
 type SortOption = "mac-dinh" | "gia-tang" | "gia-giam" | "moi-nhat";
 type ViewMode = "grid" | "list";
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 const PRICE_MIN = 0;
 const PRICE_MAX = 1_000_000;
 
@@ -240,14 +239,14 @@ function SidebarContent({
     <div className="flex flex-col gap-4">
       {/* Danh mục */}
       <div className="overflow-hidden rounded-xl border border-[#007e42]/15 bg-white shadow-md">
-        <div className="px-4 py-2.5" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
-          <h3 className="text-sm font-bold text-white">Danh mục</h3>
+        <div className="px-4 py-3" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
+          <h3 className="text-base font-bold text-white">Danh mục</h3>
         </div>
         <ul className="flex flex-col gap-1 p-2">
           <li>
             <button
               onClick={() => setActiveCategory(ALL_CATEGORY)}
-              className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:border-[#007e42]/30 hover:bg-emerald-50 hover:shadow-sm ${activeCategory === ALL_CATEGORY ? "border-[#007e42]/30 bg-emerald-50 font-semibold text-[#007e42] shadow-sm" : "border-transparent text-gray-700"}`}
+              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition text-left ${activeCategory === ALL_CATEGORY ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
             >
               <span>Tất cả</span>
             </button>
@@ -256,7 +255,7 @@ function SidebarContent({
             <li key={cat._id}>
               <button
                 onClick={() => setActiveCategory(cat._id)}
-                className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition hover:border-[#007e42]/30 hover:bg-emerald-50 hover:shadow-sm ${activeCategory === cat._id ? "border-[#007e42]/30 bg-emerald-50 font-semibold text-[#007e42] shadow-sm" : "border-transparent text-gray-700"}`}
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition text-left ${activeCategory === cat._id ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
               >
                 <span className="text-left">{cat.name}</span>
               </button>
@@ -270,8 +269,8 @@ function SidebarContent({
 
       {/* Lọc theo giá */}
       <div className="overflow-hidden rounded-xl border border-[#007e42]/15 bg-white shadow-md">
-        <div className="px-4 py-2.5" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
-          <h3 className="text-sm font-bold text-white">Lọc theo giá</h3>
+        <div className="px-4 py-3" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
+          <h3 className="text-base font-bold text-white">Lọc theo giá</h3>
         </div>
         <div className="p-4">
           <PriceSlider min={PRICE_MIN} max={PRICE_MAX} value={priceRange} onChange={setPriceRange} />
@@ -280,18 +279,18 @@ function SidebarContent({
 
       {/* Sản phẩm mới nhất */}
       <div className="overflow-hidden rounded-xl border border-[#007e42]/15 bg-white shadow-md">
-        <div className="px-4 py-2.5" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
-          <h3 className="text-sm font-bold text-white">Sản phẩm mới nhất</h3>
+        <div className="px-4 py-3" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
+          <h3 className="text-base font-bold text-white">Sản phẩm mới nhất</h3>
         </div>
         <ul className="divide-y divide-gray-50 p-3">
           {newest.map((p) => (
-            <li key={p._id} className="flex items-center gap-2 py-2">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-50 overflow-hidden">
+            <li key={p._id} className="flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-emerald-50 overflow-hidden">
                 {p.images?.[0]?.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.images[0].url} alt={p.name} className="h-full w-full object-cover" />
                 ) : (
-                  <ILeaf size={24} />
+                  <ILeaf size={34} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -401,11 +400,10 @@ export default function ProductList() {
   };
 
   return (
-    <section className="relative w-full min-h-screen px-4 py-10 sm:px-6 lg:px-10">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/30 via-white to-white" />
-      <div className="absolute inset-0 -z-10 opacity-[0.03] bg-[radial-gradient(rgba(0,126,66,0.4)_1px,transparent_1px)] [background-size:24px_24px]" />
+    <section className="relative w-full min-h-screen bg-[#e5e7eb] px-4 py-10 sm:px-6 lg:px-10">
+      <div className="absolute inset-0 -z-10 opacity-[0.02] bg-[radial-gradient(rgba(0,126,66,0.4)_1px,transparent_1px)] [background-size:24px_24px]" />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-370">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-xs text-gray-500">
           <Link href="/" className="flex items-center gap-1 hover:text-[#007e42]">
@@ -447,7 +445,7 @@ export default function ProductList() {
 
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* Sidebar (desktop) */}
-          <aside className="hidden lg:block w-72 shrink-0">
+          <aside className="hidden lg:block w-64 shrink-0">
             <SidebarContent
               categories={categories}
               activeCategory={activeCategory}
@@ -508,20 +506,17 @@ export default function ProductList() {
                 <span>Bộ lọc</span>
               </button>
 
-              <div className="relative flex-1 min-w-[180px]">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <ISearch />
-                </span>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Tìm sản phẩm..."
-                  className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm font-medium text-gray-700 outline-none focus:border-[#007e42] focus:ring-1 focus:ring-[#007e42]"
-                />
+              <div className="flex-1 min-w-[180px]">
+                {!error && (
+                  <p className="text-sm text-gray-500">
+                    Hiển thị{" "}
+                    <span className="font-semibold text-gray-800">
+                      {total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–
+                      {Math.min(page * PAGE_SIZE, total)}
+                    </span>{" "}
+                    của <span className="font-semibold text-gray-800">{total}</span> kết quả
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-1">
@@ -548,18 +543,6 @@ export default function ProductList() {
               />
             </div>
 
-            {/* Result count / status */}
-            {!error && (
-              <p className="text-sm text-gray-500">
-                Hiển thị{" "}
-                <span className="font-semibold text-gray-800">
-                  {total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–
-                  {Math.min(page * PAGE_SIZE, total)}
-                </span>{" "}
-                của <span className="font-semibold text-gray-800">{total}</span> kết quả
-              </p>
-            )}
-
             {/* Error banner */}
             {error && (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -575,11 +558,11 @@ export default function ProductList() {
 
             {/* Loading / empty / list */}
             {loading ? (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-72 animate-pulse rounded-xl border border-gray-100 bg-gray-50"
+                    className="h-96 animate-pulse rounded-xl border border-gray-300/50 bg-white/40"
                   />
                 ))}
               </div>
@@ -598,7 +581,7 @@ export default function ProductList() {
             ) : view === "grid" ? (
               <div
                 key={`grid-${page}-${activeCategory}-${sort}-${search}`}
-                className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-[fadeInUp_0.35s_ease-out]"
+                className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-[fadeInUp_0.35s_ease-out]"
               >
                 {displayed.map((p, i) => (
                   <div

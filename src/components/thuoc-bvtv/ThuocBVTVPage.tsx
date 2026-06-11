@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import ThuocBVTVHero from "./ThuocBVTVHero";
 
 /* ── Typings ── */
 interface Product {
@@ -260,52 +261,6 @@ function getToxicityInfo(level: "I" | "II" | "III" | "IV") {
   }
 }
 
-/* ── Pest catalog for guide ── */
-const PEST_GUIDE = [
-  {
-    id: "ray-nau",
-    name: "Rầy nâu",
-    icon: "🦗",
-    desc: "Chích hút thân lúa, lây virus vàng lùn xoắn lá. Phát sinh nhanh khi thời tiết nóng ẩm.",
-    recommend: [201, 203],
-  },
-  {
-    id: "sau-cuon-la",
-    name: "Sâu cuốn lá",
-    icon: "🐛",
-    desc: "Cuốn lá lúa thành ống, gặm lớp biểu bì làm giảm quang hợp, ảnh hưởng đẻ nhánh.",
-    recommend: [206, 207],
-  },
-  {
-    id: "dao-on",
-    name: "Đạo ôn",
-    icon: "🍃",
-    desc: "Bệnh nấm gây cháy lá, gãy cổ bông, thường bùng phát khi thời tiết se lạnh, ẩm cao.",
-    recommend: [202, 208],
-  },
-  {
-    id: "kho-van",
-    name: "Khô vằn",
-    icon: "🌾",
-    desc: "Nấm Rhizoctonia tấn công bẹ lá, lan dần lên trên, gây đổ ngã và lép hạt.",
-    recommend: [204, 208],
-  },
-  {
-    id: "co-dai",
-    name: "Cỏ dại",
-    icon: "🌱",
-    desc: "Cạnh tranh dinh dưỡng và ánh sáng với lúa. Cần xử lý sớm sau gieo sạ.",
-    recommend: [205, 209],
-  },
-  {
-    id: "sau-duc-than",
-    name: "Sâu đục thân",
-    icon: "🪲",
-    desc: "Sâu non đục vào thân lúa làm chết nõn, bông bạc, mất năng suất nghiêm trọng.",
-    recommend: [207, 206],
-  },
-];
-
 export default function ThuocBVTVPage() {
   /* ── State ── */
   const [search, setSearch] = useState("");
@@ -321,9 +276,6 @@ export default function ThuocBVTVPage() {
   const [toast, setToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: "" });
   const [cartBadge, setCartBadge] = useState(0);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-  /* ── Guide state ── */
-  const [activePest, setActivePest] = useState(PEST_GUIDE[0]);
 
   /* ── Category counts ── */
   const categorySummary = useMemo(() => {
@@ -381,7 +333,7 @@ export default function ThuocBVTVPage() {
     });
   }, [search, activeCategory, selectedBrands, selectedTox, priceRange, sortBy]);
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = useMemo(() => {
     const start = (page - 1) * itemsPerPage;
@@ -401,13 +353,8 @@ export default function ThuocBVTVPage() {
     setQuantity(1);
   };
 
-  /* ── Recommended products for selected pest ── */
-  const recommendedProducts = useMemo(() => {
-    return PESTICIDES.filter((p) => activePest.recommend.includes(p.id));
-  }, [activePest]);
-
   return (
-    <div className="bg-gradient-to-b from-[#f9fcfb] to-[#f4f7f6] min-h-screen text-gray-800 pb-16 font-sans">
+    <div className="bg-[#e5e7eb] min-h-screen text-gray-800 pb-16 font-sans">
       {/* ── Cart Float Badge ── */}
       {cartBadge > 0 && (
         <div className="fixed bottom-6 right-6 z-40 bg-[#007e42] text-white flex items-center gap-3 px-5 py-3 rounded-full shadow-2xl animate-bounce hover:scale-105 transition-all">
@@ -432,155 +379,14 @@ export default function ThuocBVTVPage() {
       )}
 
       {/* ── 1. Hero ── */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#00522b] via-[#007e42] to-[#00a85a] text-white py-16 px-6 lg:px-16 shadow-lg">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
-        <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="max-w-2xl space-y-5">
-            <span className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-200 border border-white/10">
-              🛡️ Bảo Vệ Cây Trồng Toàn Diện
-            </span>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
-              Thuốc Bảo Vệ Thực Vật <br />
-              <span className="text-emerald-300">Chính Hãng - An Toàn - Hiệu Quả</span>
-            </h1>
-            <p className="text-base text-emerald-50 max-w-xl leading-relaxed">
-              Giải pháp đặc trị sâu rầy, đạo ôn, khô vằn, cỏ dại cho cây lúa. Cam kết hàng chính hãng, hướng dẫn pha chế chuẩn từ kỹ sư nông học.
-            </p>
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/15">
-              <div>
-                <span className="block text-2xl font-black text-emerald-300">100+</span>
-                <span className="text-xs text-emerald-100/80 font-medium">Hoạt chất đặc trị</span>
-              </div>
-              <div>
-                <span className="block text-2xl font-black text-emerald-300">7+</span>
-                <span className="text-xs text-emerald-100/80 font-medium">Thương hiệu lớn</span>
-              </div>
-              <div>
-                <span className="block text-2xl font-black text-emerald-300">98%</span>
-                <span className="text-xs text-emerald-100/80 font-medium">Hiệu lực phòng trị</span>
-              </div>
-            </div>
-          </div>
+      <ThuocBVTVHero />
 
-          <div className="relative w-72 h-72 md:w-96 md:h-96 shrink-0 bg-white/10 rounded-full border border-white/20 p-6 shadow-2xl flex items-center justify-center backdrop-blur-sm animate-pulse-slow">
-            <Image
-              src="/thuoc.png"
-              alt="Thuốc BVTV tiêu biểu"
-              width={250}
-              height={250}
-              className="object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.4)]"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── 2. Pest & Disease Guide ── */}
-      <section className="max-w-7xl mx-auto -mt-10 px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="bg-[#007e42] px-6 py-5 flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-xl text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                <path d="M8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white leading-none">Cẩm Nang Chọn Thuốc Theo Sâu Bệnh</h2>
-              <p className="text-xs text-emerald-100/90 mt-1">Tra cứu nhanh giải pháp đặc trị cho từng đối tượng dịch hại trên lúa.</p>
-            </div>
-          </div>
-
-          <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Pest list */}
-            <div className="lg:col-span-4 space-y-2">
-              <h3 className="text-sm font-extrabold text-gray-700 uppercase tracking-wider border-b border-gray-100 pb-2 mb-3">
-                1. Chọn đối tượng dịch hại
-              </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-                {PEST_GUIDE.map((pest) => (
-                  <button
-                    key={pest.id}
-                    onClick={() => setActivePest(pest)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition ${
-                      activePest.id === pest.id
-                        ? "border-[#007e42] bg-emerald-50 shadow-sm"
-                        : "border-gray-100 hover:border-emerald-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="text-2xl">{pest.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold ${activePest.id === pest.id ? "text-[#007e42]" : "text-gray-700"}`}>
-                        {pest.name}
-                      </p>
-                      <p className="text-[10px] text-gray-400 line-clamp-1">{pest.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Pest detail + recommended */}
-            <div className="lg:col-span-8 bg-[#fbfdfc] border border-emerald-50 rounded-2xl p-6 space-y-4">
-              <div className="flex items-start gap-4">
-                <span className="text-5xl shrink-0">{activePest.icon}</span>
-                <div className="flex-1">
-                  <span className="text-[10px] font-black uppercase bg-emerald-100 text-[#007e42] px-2 py-0.5 rounded">
-                    Đối tượng dịch hại
-                  </span>
-                  <h4 className="text-xl font-extrabold text-gray-800 mt-1">{activePest.name}</h4>
-                  <p className="text-xs text-gray-600 mt-1.5 leading-relaxed italic">
-                    &ldquo;{activePest.desc}&rdquo;
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-                  Sản phẩm khuyên dùng:
-                </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {recommendedProducts.map((p) => (
-                    <div
-                      key={p.id}
-                      className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm flex items-center gap-3"
-                    >
-                      <div className="w-14 h-14 shrink-0 bg-gradient-to-br from-[#ebf5ef] to-[#cce8d9] rounded-lg flex items-center justify-center">
-                        <Image src="/thuoc.png" alt={p.name} width={40} height={40} className="object-contain" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-extrabold text-gray-800 line-clamp-1 uppercase">{p.name}</p>
-                        <p className="text-[10px] text-gray-400">{p.brand}</p>
-                        <p className="text-sm font-black text-[#007e42] mt-0.5">{p.price.toLocaleString("vi-VN")} đ</p>
-                      </div>
-                      <button
-                        onClick={() => setSelectedProduct(p)}
-                        className="bg-[#007e42]/10 hover:bg-[#007e42] hover:text-white text-[#007e42] p-2 rounded-lg transition shrink-0"
-                        title="Xem chi tiết"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" />
-                          <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-800">
-                ⚠️ Tuân thủ &ldquo;4 đúng&rdquo;: đúng thuốc - đúng liều lượng - đúng thời điểm - đúng cách. Đeo bảo hộ khi pha và phun.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. Main Workspace ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+      {/* ── 2. Main Workspace ── */}
+      <section id="catalog" className="max-w-370 mx-auto px-4 sm:px-6 lg:px-8 mt-12">
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* ── Desktop Sidebar Filter ── */}
-          <aside className="w-full lg:w-72 shrink-0 hidden lg:block space-y-6">
+          <aside className="w-full lg:w-64 shrink-0 hidden lg:block space-y-6">
 
             {/* Search */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
@@ -857,13 +663,13 @@ export default function ThuocBVTVPage() {
 
             {/* Grid */}
             {viewMode === "grid" && filteredProducts.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedProducts.map((p) => {
                   const tox = getToxicityInfo(p.toxicity);
                   return (
                     <div
                       key={p.id}
-                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative"
+                      className="bg-white/40 rounded-2xl border border-transparent overflow-hidden hover:bg-white hover:shadow-lg transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative"
                     >
                       {p.badge && (
                         <span className="absolute top-3 left-3 z-10 bg-[#007e42] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-lg shadow-sm">
@@ -976,7 +782,7 @@ export default function ThuocBVTVPage() {
                   return (
                     <div
                       key={p.id}
-                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row gap-5 items-center p-4 relative group"
+                      className="bg-white/40 rounded-2xl border border-transparent overflow-hidden hover:bg-white hover:shadow-md transition-all flex flex-col md:flex-row gap-5 items-center p-4 relative group"
                     >
                       {p.badge && (
                         <span className="absolute top-4 left-4 z-10 bg-[#007e42] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-lg">

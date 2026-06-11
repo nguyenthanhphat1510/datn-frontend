@@ -6,13 +6,51 @@ import { useRouter } from "next/navigation";
 import type { Product } from "@/types/product";
 import { fmt } from "@/lib/format";
 import { Stars } from "@/components/Stars";
-import { BADGE_STYLES, ICart, IHeart, IHome, ILeaf } from "@/components/icons";
+import { BADGE_STYLES, ICartPush, IHome, ILeaf, ITruck, IShieldCheck, IRefresh } from "@/components/icons";
 import { ProductCard } from "@/components/home/ProductItem";
 import { fetchProducts } from "@/services/products";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
-type Tab = "mo-ta" | "huong-dan";
+/* ── Fake data (demo trình bày — luôn hiển thị) ── */
+const FAKE_DESCRIPTION = `Sản phẩm vật tư nông nghiệp chất lượng cao, được tuyển chọn kỹ lưỡng nhằm hỗ trợ cây trồng phát triển khỏe mạnh qua từng giai đoạn sinh trưởng. Công thức cân đối giúp tăng sức đề kháng, cải thiện năng suất và chất lượng nông sản.
+
+Phù hợp với nhiều loại cây trồng phổ biến như lúa, rau màu, cây ăn trái và cây công nghiệp. Sản phẩm thân thiện với môi trường, an toàn cho người sử dụng khi tuân thủ đúng hướng dẫn.`;
+
+const FAKE_HIGHLIGHTS = [
+  "Thành phần dinh dưỡng cân đối, dễ hấp thu",
+  "Giúp cây sinh trưởng nhanh, tăng năng suất",
+  "An toàn cho cây trồng và thân thiện môi trường",
+  "Bảo quản dễ dàng, hạn sử dụng dài",
+];
+
+const FAKE_SPECS: { label: string; value: string }[] = [
+  { label: "Xuất xứ", value: "Việt Nam" },
+  { label: "Quy cách", value: "Bao 5kg / 10kg / 25kg" },
+  { label: "Dạng", value: "Hạt / Bột hòa tan" },
+  { label: "Bảo quản", value: "Nơi khô ráo, thoáng mát" },
+];
+
+const FAKE_USAGE_STEPS = [
+  "Đọc kỹ hướng dẫn và xác định liều lượng phù hợp với loại cây trồng.",
+  "Pha hoặc rải theo tỷ lệ khuyến cáo, tránh dùng quá liều.",
+  "Áp dụng vào sáng sớm hoặc chiều mát để đạt hiệu quả tốt nhất.",
+  "Tưới nước đầy đủ sau khi bón để dưỡng chất thấm đều vào đất.",
+];
+
+const FAKE_NOTES = [
+  "Đeo găng tay và khẩu trang khi sử dụng.",
+  "Để xa tầm tay trẻ em và vật nuôi.",
+  "Không sử dụng khi trời sắp mưa lớn.",
+];
+
+type Tab = "mo-ta" | "huong-dan" | "thong-so";
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: "mo-ta", label: "Mô tả sản phẩm" },
+  { value: "huong-dan", label: "Hướng dẫn sử dụng" },
+  { value: "thong-so", label: "Thông số kỹ thuật" },
+];
 
 export default function ProductDetailClient({ product }: { product: Product }) {
   const router = useRouter();
@@ -27,21 +65,24 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [related, setRelated] = useState<Product[]>([]);
 
   const images = product.images ?? [];
+  // Demo trình bày: luôn hiện tối thiểu 4 ô thumbnail (ô đầu là ảnh thật, còn lại placeholder)
+  const thumbCount = Math.max(images.length, 4);
   const outOfStock = product.stock === 0;
   const discountPct =
     product.originalPrice && product.originalPrice > product.price
       ? Math.round((1 - product.price / product.originalPrice) * 100)
       : 0;
 
-  const hasDescription = !!product.description?.trim();
-  const hasUsage = !!product.usageInstructions?.trim();
-  const showTabs = hasDescription || hasUsage;
+  // Đánh giá + đã bán (dùng data thật nếu có, không thì fake để demo trình bày)
+  const ratingValue = product.rating ?? 4.8;
+  const ratingCount = product.ratingCount ?? 124;
+  const soldCount = 1280;
 
   useEffect(() => {
     if (!product.categoryId) return;
-    fetchProducts({ categoryId: product.categoryId, limit: 7 })
+    fetchProducts({ categoryId: product.categoryId, limit: 5 })
       .then((res) => {
-        setRelated(res.data.filter((p) => p._id !== product._id).slice(0, 6));
+        setRelated(res.data.filter((p) => p._id !== product._id).slice(0, 4));
       })
       .catch(() => setRelated([]));
   }, [product._id, product.categoryId]);
@@ -79,9 +120,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   };
 
   return (
-    <section className="relative min-h-screen w-full px-4 py-8 sm:px-6 lg:px-10">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-50/30 via-white to-white" />
-
+    <section className="relative min-h-screen w-full bg-[#e5e7eb] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <nav className="mb-6 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
@@ -97,14 +136,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </span>
         </nav>
 
-        {/* Main 2-col */}
-        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
+        {/* Main 2-col (card trắng nổi) */}
+        <div className="flex flex-col gap-8 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 lg:flex-row lg:gap-12 lg:p-8">
 
           {/* ── CỘT TRÁI: Gallery ── */}
           <div className="w-full lg:w-1/2">
             {/* Ảnh lớn */}
-            <div className="relative flex h-80 items-center justify-center overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br from-emerald-50 to-teal-100 shadow-sm sm:h-96 lg:h-[440px]">
-              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(rgba(0,126,66,0.15)_1px,transparent_1px)] [background-size:20px_20px]" />
+            <div className="relative flex h-80 items-center justify-center overflow-hidden rounded-2xl bg-white sm:h-96 lg:h-110">
               {images.length > 0 ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -128,49 +166,57 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* Thumbnails */}
-            {images.length > 1 && (
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                {images.map((img, i) => (
+            {/* Thumbnails — luôn hiển thị; nếu chưa có ảnh thật thì dùng ô placeholder để xem layout */}
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              {Array.from({ length: thumbCount }).map((_, i) => {
+                const img = images[i];
+                return (
                   <button
-                    key={img.publicId}
+                    key={img?.publicId ?? `placeholder-${i}`}
                     onClick={() => setActiveImage(i)}
-                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                    className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 bg-emerald-50/40 transition ${
                       i === activeImage
                         ? "border-[#007e42] shadow-md"
                         : "border-gray-200 hover:border-[#007e42]/50"
                     }`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img.url} alt={`${product.name} ${i + 1}`} className="h-full w-full object-cover" />
+                    {img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={img.url} alt={`${product.name} ${i + 1}`} className="h-full w-full object-contain p-1.5" />
+                    ) : (
+                      <ILeaf size={28} />
+                    )}
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
           {/* ── CỘT PHẢI: Info ── */}
           <div className="flex w-full flex-col gap-5 lg:w-1/2">
 
-            {/* Tên + nhà SX */}
+            {/* Tên sản phẩm */}
             <div>
-              <h1 className="text-xl font-extrabold uppercase leading-snug text-gray-900 sm:text-2xl lg:text-3xl">
+              <h1 className="text-xl font-extrabold leading-snug text-gray-900 sm:text-2xl lg:text-3xl">
                 {product.name}
               </h1>
-              {product.manufacturer && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Nhà sản xuất: <span className="font-semibold text-gray-700">{product.manufacturer}</span>
-                </p>
-              )}
             </div>
 
-            {/* Sao đánh giá */}
-            {product.rating ? (
+            {/* Đánh giá + Đã bán */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <Stars rating={product.rating} />
-                <span className="text-sm text-gray-400">({product.ratingCount ?? 0} đánh giá)</span>
+                <span className="font-bold text-amber-500">{ratingValue.toFixed(1)}</span>
+                <Stars rating={ratingValue} />
               </div>
-            ) : null}
+              <span className="h-4 w-px bg-gray-200" />
+              <span className="text-gray-500">
+                <span className="font-semibold text-gray-700">{ratingCount}</span> đánh giá
+              </span>
+              <span className="h-4 w-px bg-gray-200" />
+              <span className="text-gray-500">
+                Đã bán <span className="font-semibold text-gray-700">{soldCount.toLocaleString("vi-VN")}</span>
+              </span>
+            </div>
 
             <hr className="border-gray-100" />
 
@@ -203,14 +249,14 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
             <hr className="border-gray-100" />
 
-            {/* Quantity */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-600">Số lượng:</span>
-              <div className="flex items-center overflow-hidden rounded-lg border border-gray-200">
+            {/* Nút hành động: số lượng + thêm vào giỏ cùng hàng */}
+            <div className="flex gap-3">
+              {/* Quantity */}
+              <div className="flex items-center overflow-hidden rounded-xl border border-gray-200">
                 <button
                   onClick={() => changeQty(-1)}
                   disabled={outOfStock || qty <= 1}
-                  className="flex h-10 w-10 items-center justify-center text-gray-600 transition hover:bg-emerald-50 hover:text-[#007e42] disabled:opacity-40"
+                  className="flex h-12 w-11 items-center justify-center text-gray-600 transition hover:bg-emerald-50 hover:text-[#007e42] disabled:opacity-40"
                 >
                   −
                 </button>
@@ -221,51 +267,36 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   onChange={(e) => setQty(Number(e.target.value.replace(/\D/g, "")) || 1)}
                   onBlur={(e) => commitQty(e.target.value)}
                   disabled={outOfStock}
-                  className="h-10 w-12 border-x border-gray-200 bg-white text-center text-sm font-semibold text-gray-800 outline-none disabled:opacity-40"
+                  className="h-12 w-12 border-x border-gray-200 bg-white text-center text-sm font-semibold text-gray-800 outline-none disabled:opacity-40"
                 />
                 <button
                   onClick={() => changeQty(1)}
                   disabled={outOfStock || qty >= product.stock}
-                  className="flex h-10 w-10 items-center justify-center text-gray-600 transition hover:bg-emerald-50 hover:text-[#007e42] disabled:opacity-40"
+                  className="flex h-12 w-11 items-center justify-center text-gray-600 transition hover:bg-emerald-50 hover:text-[#007e42] disabled:opacity-40"
                 >
                   +
                 </button>
               </div>
-            </div>
 
-            {/* Nút hành động */}
-            <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleAddToCart}
                 disabled={outOfStock || adding}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition disabled:opacity-60 ${
+                className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition disabled:opacity-60 ${
                   outOfStock
                     ? "cursor-not-allowed bg-gray-200 text-gray-400"
                     : carted
                     ? "bg-[#007e42] text-white shadow-lg"
-                    : "border border-[#007e42] text-[#007e42] hover:bg-[#007e42] hover:text-white"
+                    : "bg-[#007e42] text-white shadow hover:bg-[#0a9d52]"
                 }`}
               >
-                <ICart />
+                <ICartPush />
                 {outOfStock
                   ? "Hết hàng"
                   : adding
                   ? "Đang thêm..."
                   : carted
                   ? "Đã thêm!"
-                  : "Thêm vào giỏ"}
-              </button>
-              <button
-                disabled={outOfStock}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#007e42] px-5 py-3 text-sm font-bold text-white shadow transition hover:bg-[#0a9d52] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
-              >
-                Mua ngay
-              </button>
-              <button
-                title="Yêu thích"
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition hover:border-red-400 hover:text-red-500"
-              >
-                <IHeart />
+                  : "Thêm vào giỏ hàng"}
               </button>
             </div>
 
@@ -275,66 +306,115 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
             <hr className="border-gray-100" />
 
-            {/* Danh mục */}
-            {product.categoryId && (
-              <p className="text-sm text-gray-500">
-                Danh mục:{" "}
-                <span className="font-semibold text-[#007e42]">{product.categoryId}</span>
-              </p>
-            )}
+            {/* Dải cam kết */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                { icon: <ITruck />, title: "Giao hàng nhanh", desc: "Nội thành 1–2 ngày" },
+                { icon: <IShieldCheck />, title: "Hàng chính hãng", desc: "Cam kết 100%" },
+                { icon: <IRefresh />, title: "Đổi trả dễ dàng", desc: "Trong vòng 7 ngày" },
+              ].map((c) => (
+                <div key={c.title} className="flex items-center gap-2.5 rounded-xl bg-emerald-50/60 px-3 py-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#007e42] shadow-sm">
+                    {c.icon}
+                  </span>
+                  <div className="leading-tight">
+                    <p className="text-xs font-bold text-gray-800">{c.title}</p>
+                    <p className="text-[11px] text-gray-500">{c.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* ── Tab Mô tả / Hướng dẫn ── */}
-        {showTabs && (
-          <div className="mt-12">
-            <div className="flex gap-1 border-b border-gray-200">
-              {hasDescription && (
-                <button
-                  onClick={() => setActiveTab("mo-ta")}
-                  className={`px-5 py-2.5 text-sm font-semibold transition ${
-                    activeTab === "mo-ta"
-                      ? "border-b-2 border-[#007e42] text-[#007e42]"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Mô tả
-                </button>
-              )}
-              {hasUsage && (
-                <button
-                  onClick={() => setActiveTab("huong-dan")}
-                  className={`px-5 py-2.5 text-sm font-semibold transition ${
-                    activeTab === "huong-dan"
-                      ? "border-b-2 border-[#007e42] text-[#007e42]"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Hướng dẫn sử dụng
-                </button>
-              )}
-            </div>
-            <div className="mt-5 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-              {activeTab === "mo-ta" ? (
-                hasDescription ? (
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
-                    {product.description}
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-400">Chưa có thông tin mô tả.</p>
-                )
-              ) : (
-                hasUsage ? (
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">
+        {/* ── Mô tả / Hướng dẫn / Thông số (dạng tab) ── */}
+        <div className="mt-10 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          {/* Thanh tab */}
+          <div className="flex flex-wrap border-b border-gray-100">
+            {TABS.map((t) => (
+              <button
+                key={t.value}
+                onClick={() => setActiveTab(t.value)}
+                className={`relative px-5 py-3.5 text-sm font-semibold transition ${
+                  activeTab === t.value
+                    ? "text-[#007e42]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t.label}
+                {activeTab === t.value && (
+                  <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-[#007e42]" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Nội dung tab */}
+          <div className="p-6">
+            {/* Mô tả */}
+            {activeTab === "mo-ta" && (
+              <div>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
+                  {product.description?.trim() || FAKE_DESCRIPTION}
+                </p>
+                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {FAKE_HIGHLIGHTS.map((h) => (
+                    <div key={h} className="flex items-start gap-2 rounded-xl bg-emerald-50/60 px-3 py-2.5">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#007e42] text-[11px] font-bold text-white">✓</span>
+                      <span className="text-xs font-medium text-gray-700">{h}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hướng dẫn */}
+            {activeTab === "huong-dan" && (
+              <div>
+                {product.usageInstructions?.trim() ? (
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
                     {product.usageInstructions}
                   </p>
                 ) : (
-                  <p className="text-sm text-gray-400">Chưa có hướng dẫn sử dụng.</p>
-                )
-              )}
-            </div>
+                  <ol className="flex flex-col gap-3">
+                    {FAKE_USAGE_STEPS.map((step, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#007e42] text-sm font-bold text-white">
+                          {i + 1}
+                        </span>
+                        <span className="pt-0.5 text-sm leading-relaxed text-gray-600">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+
+                <div className="mt-5 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-700">⚠ Lưu ý an toàn</p>
+                  <ul className="flex flex-col gap-1.5">
+                    {FAKE_NOTES.map((n) => (
+                      <li key={n} className="flex items-start gap-2 text-xs text-amber-800">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+                        <span>{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Thông số */}
+            {activeTab === "thong-so" && (
+              <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+                {FAKE_SPECS.map((s) => (
+                  <div key={s.label} className="flex items-center justify-between gap-3 border-b border-gray-100 py-2.5">
+                    <dt className="text-xs font-medium text-gray-400">{s.label}</dt>
+                    <dd className="text-right text-xs font-semibold text-gray-700">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
           </div>
-        )}
+        </div>
 
         {/* ── Sản phẩm liên quan ── */}
         {related.length > 0 && (
@@ -345,7 +425,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 Sản phẩm liên quan
               </h2>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p._id} product={p} />
               ))}

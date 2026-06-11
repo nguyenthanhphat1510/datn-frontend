@@ -44,7 +44,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/san-pham/${product._id}`}
-      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:border-[#007e42]/30 hover:shadow-xl"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-transparent bg-white/40 transition-all duration-300 hover:border-[#007e42]/30 hover:bg-white hover:shadow-xl"
     >
       {/* Badges */}
       <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
@@ -61,14 +61,14 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* Image area */}
-      <div className="relative flex h-60 items-center justify-center overflow-hidden bg-white">
+      <div className="relative flex h-64 items-center justify-center overflow-hidden">
         <div className="relative flex h-full w-full items-center justify-center transition-transform duration-300 group-hover:-translate-y-2">
-          <ProductImageBox product={product} size={56} />
+          <ProductImageBox product={product} size={64} />
         </div>
       </div>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col gap-1.5 p-3.5">
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
         {product.manufacturer && (
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[#007e42]/70">
             {product.manufacturer}
@@ -103,9 +103,9 @@ export function ProductRow({ product }: { product: Product }) {
   return (
     <Link
       href={`/san-pham/${product._id}`}
-      className="group flex items-center gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition hover:border-[#007e42]/30 hover:shadow-md"
+      className="group flex items-center gap-4 rounded-xl border border-transparent bg-white/40 p-4 transition hover:border-[#007e42]/30 hover:bg-white hover:shadow-md"
     >
-      <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+      <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg">
         <ProductImageBox product={product} size={40} />
         {product.badge && (
           <span className={`absolute left-1 top-1 z-[2] rounded px-1.5 py-0.5 text-[9px] font-bold uppercase text-white shadow ${BADGE_STYLES[product.badge]}`}>

@@ -95,6 +95,24 @@ function IArrowLeft() {
   );
 }
 
+function IArrowRight() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  );
+}
+
 function ITag() {
   return (
     <svg
@@ -206,7 +224,7 @@ function QuantityStepper({
       <button
         onClick={onDecrease}
         disabled={disabled || quantity <= 1}
-        className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-medium"
+        className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent text-lg font-medium"
         aria-label="Giảm số lượng"
       >
         −
@@ -217,7 +235,7 @@ function QuantityStepper({
       <button
         onClick={onIncrease}
         disabled={disabled}
-        className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed text-lg font-medium"
+        className="flex h-8 w-8 items-center justify-center text-gray-500 transition hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent text-lg font-medium"
         aria-label="Tăng số lượng"
       >
         +
@@ -248,8 +266,8 @@ function CartItemRow({
 }) {
   return (
     <div
-      className={`group flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm transition-all duration-200 ${
-        checked ? "border-[#007e42]/30 shadow-md" : "border-gray-100"
+      className={`group flex items-center gap-3 border-b border-gray-100 p-4 transition-colors duration-200 last:border-b-0 ${
+        checked ? "bg-emerald-50/40" : "bg-white"
       }`}
     >
       {/* Checkbox */}
@@ -267,13 +285,13 @@ function CartItemRow({
       </button>
 
       {/* Product Image */}
-      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-emerald-50 to-teal-100">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-white">
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.imageUrl}
             alt={item.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain p-1"
           />
         ) : (
           <ILeaf />
@@ -281,10 +299,10 @@ function CartItemRow({
       </div>
 
       {/* Info */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="ml-1 flex min-w-0 flex-1 flex-col gap-1">
         <Link
           href={`/san-pham/${item.productId}`}
-          className="line-clamp-2 text-sm font-bold uppercase leading-snug text-gray-800 transition hover:text-[#007e42]"
+          className="line-clamp-2 text-sm font-bold leading-snug text-gray-800 transition hover:text-[#007e42]"
         >
           {item.name}
         </Link>
@@ -296,7 +314,7 @@ function CartItemRow({
       </div>
 
       {/* Quantity */}
-      <div className="flex shrink-0 flex-col items-center gap-2">
+      <div className="flex w-28 shrink-0 items-center justify-center">
         <QuantityStepper
           quantity={item.quantity}
           disabled={disabled}
@@ -307,7 +325,7 @@ function CartItemRow({
 
       {/* Subtotal */}
       <div className="w-28 shrink-0 text-right">
-        <p className="text-base font-bold text-gray-800">{fmt(item.subtotal)}</p>
+        <p className="text-base font-bold text-[#007e42]">{fmt(item.subtotal)}</p>
       </div>
 
       {/* Remove */}
@@ -394,13 +412,15 @@ function OrderSummary({
   subtotal: number;
   checkedCount: number;
 }) {
-  const shipping = subtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
+  // Chưa chọn sản phẩm nào → không tính phí ship, tổng = 0
+  const hasSelection = checkedCount > 0;
+  const shipping = !hasSelection || subtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
   const total = subtotal + shipping;
   const toFreeShip = FREE_SHIP_THRESHOLD - subtotal;
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-[#007e42]/15 bg-white p-5 shadow-lg">
-      <h2 className="text-base font-bold text-gray-800">Tóm tắt đơn hàng</h2>
+      <h2 className="text-lg font-bold text-gray-800">Tổng Đơn Hàng</h2>
 
       {/* Free ship progress */}
       {shipping > 0 && subtotal > 0 && (
@@ -422,20 +442,27 @@ function OrderSummary({
       )}
 
       {shipping === 0 && subtotal >= FREE_SHIP_THRESHOLD && (
-        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-700">
-          🎉 Bạn được miễn phí vận chuyển!
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-700">
+          <span className="text-emerald-600"><ICheck /></span>
+          Bạn được miễn phí vận chuyển!
         </div>
       )}
 
       {/* Price rows */}
       <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
         <div className="flex justify-between text-sm text-gray-600">
-          <span>Tạm tính ({checkedCount} sản phẩm)</span>
-          <span className="font-medium text-gray-800">{fmt(subtotal)}</span>
+          <span>Tổng số lượng</span>
+          <span className="font-medium text-gray-800">{checkedCount} sản phẩm</span>
+        </div>
+        <div className="flex justify-between text-sm text-gray-600">
+          <span>Tạm tính</span>
+          <span className="font-semibold text-[#007e42]">{fmt(subtotal)}</span>
         </div>
         <div className="flex justify-between text-sm text-gray-600">
           <span>Phí vận chuyển</span>
-          {shipping === 0 ? (
+          {!hasSelection ? (
+            <span className="font-medium text-gray-800">{fmt(0)}</span>
+          ) : shipping === 0 ? (
             <span className="font-medium text-emerald-600">Miễn phí</span>
           ) : (
             <span className="font-medium text-gray-800">{fmt(shipping)}</span>
@@ -452,21 +479,34 @@ function OrderSummary({
       </div>
 
       {/* Total */}
-      <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-        <span className="text-sm font-bold text-gray-700">Tổng cộng</span>
-        <span className="text-lg font-extrabold text-[#007e42]">
-          {fmt(total)}
-        </span>
+      <div className="flex items-end justify-between rounded-xl bg-gray-50 px-4 py-3">
+        <span className="text-sm font-bold text-gray-700">Thành tiền:</span>
+        <div className="text-right leading-tight">
+          <span className="text-2xl font-extrabold text-[#007e42]">
+            {fmt(total)}
+          </span>
+          <p className="text-[11px] text-gray-400">(Đã bao gồm VAT)</p>
+        </div>
       </div>
 
-      {/* Checkout button — chưa nối đặt hàng (ngoài phạm vi) */}
-      <button
-        disabled={checkedCount === 0}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#007e42] py-3 text-sm font-bold text-white shadow-md shadow-[#007e42]/25 transition hover:bg-[#005f32] active:scale-[.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-      >
-        <ICart />
-        Tiến hành thanh toán ({checkedCount})
-      </button>
+      {/* Checkout — chỉ thanh toán các sản phẩm đã chọn */}
+      {hasSelection ? (
+        <Link
+          href="/thanh-toan"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#007e42] py-3 text-sm font-bold text-white shadow-md shadow-[#007e42]/25 transition hover:bg-[#005f32] active:scale-[.98]"
+        >
+          Tiến hành thanh toán
+          <IArrowRight />
+        </Link>
+      ) : (
+        <button
+          disabled
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#007e42] py-3 text-sm font-bold text-white opacity-40 cursor-not-allowed"
+        >
+          Tiến hành thanh toán
+          <IArrowRight />
+        </button>
+      )}
 
       {/* Trust badges */}
       <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-3">
@@ -481,9 +521,30 @@ function OrderSummary({
           </div>
         ))}
       </div>
+
+      {/* Payment logos */}
+      <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-3">
+        {PAYMENT_METHODS.map((p) => (
+          <span
+            key={p.label}
+            className="flex h-7 items-center justify-center rounded-md border border-gray-200 bg-white px-2 text-[10px] font-bold tracking-tight shadow-sm"
+            style={{ color: p.color }}
+          >
+            {p.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
+
+/* Logo thanh toán (UI tĩnh — trang trí) */
+const PAYMENT_METHODS = [
+  { label: "VISA", color: "#1a1f71" },
+  { label: "Mastercard", color: "#eb001b" },
+  { label: "PayPal", color: "#003087" },
+  { label: "ApplePay", color: "#000000" },
+];
 
 /* ─────────────────────────────────────────
    Empty State
@@ -610,7 +671,7 @@ export default function CartPage() {
   /* ── Chưa đăng nhập ── */
   if (!authLoading && !user) {
     return (
-      <section className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
+      <section className="min-h-screen bg-[#e5e7eb] px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <NeedLogin />
         </div>
@@ -619,10 +680,25 @@ export default function CartPage() {
   }
 
   return (
-    <section className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
+    <section className="min-h-screen bg-[#e5e7eb] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
         {/* ── Header ── */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#007e42] text-white shadow-sm">
+              <ICart />
+            </span>
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-800">
+                Giỏ Hàng Của Bạn
+              </h1>
+              <p className="text-sm text-gray-500">
+                {items.length > 0
+                  ? `Bạn đang có ${items.length} sản phẩm trong giỏ hàng`
+                  : "Giỏ hàng của bạn đang trống"}
+              </p>
+            </div>
+          </div>
           <Link
             href="/"
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 shadow-sm transition hover:border-[#007e42]/30 hover:text-[#007e42]"
@@ -630,14 +706,6 @@ export default function CartPage() {
             <IArrowLeft />
             Tiếp tục mua sắm
           </Link>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-gray-800">Giỏ hàng</h1>
-            {items.length > 0 && (
-              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#007e42] px-1.5 text-xs font-bold text-white">
-                {items.length}
-              </span>
-            )}
-          </div>
         </div>
 
         {error && (
@@ -655,9 +723,9 @@ export default function CartPage() {
         ) : (
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
             {/* ── Left: items ── */}
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              {/* Toolbar */}
-              <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-2.5 shadow-sm">
+            <div className="flex min-w-0 flex-1 flex-col">
+              {/* Toolbar — header cột, dính liền lên đầu danh sách */}
+              <div className="flex items-center gap-3 rounded-t-xl border border-b-0 border-gray-200 bg-[#dadde2] px-4 py-2.5">
                 {/* Select all */}
                 <button
                   onClick={toggleAll}
@@ -671,24 +739,34 @@ export default function CartPage() {
                 >
                   {allChecked && <ICheck />}
                 </button>
-                <span className="flex-1 text-sm text-gray-600">
-                  Chọn tất cả ({items.length} sản phẩm)
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Sản phẩm ({items.length})
                 </span>
 
-                {checkedIds.size > 0 && (
+                {checkedIds.size > 0 ? (
                   <button
                     onClick={removeChecked}
                     disabled={busy}
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 disabled:opacity-40"
+                    className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 disabled:opacity-40"
                   >
                     <ITrash />
                     Xóa đã chọn ({checkedIds.size})
                   </button>
+                ) : (
+                  <div className="ml-auto hidden items-center sm:flex">
+                    <span className="w-28 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Số lượng
+                    </span>
+                    <span className="w-28 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Tạm tính
+                    </span>
+                    <span className="w-8" />
+                  </div>
                 )}
               </div>
 
-              {/* Item list */}
-              <div className="flex flex-col gap-2.5">
+              {/* Item list — các dòng nối tiếp, bo góc dưới */}
+              <div className="flex flex-col overflow-hidden rounded-b-xl border border-gray-100">
                 {items.map((item) => (
                   <CartItemRow
                     key={item.productId}
@@ -704,14 +782,20 @@ export default function CartPage() {
               </div>
 
               {/* Mobile order summary (hidden on lg) */}
-              <div className="lg:hidden">
-                <OrderSummary subtotal={subtotal} checkedCount={checkedCount} />
+              <div className="mt-4 lg:hidden">
+                <OrderSummary
+                  subtotal={subtotal}
+                  checkedCount={checkedCount}
+                />
               </div>
             </div>
 
             {/* ── Right: summary (sticky on lg) ── */}
             <div className="hidden w-80 shrink-0 lg:block lg:sticky lg:top-24">
-              <OrderSummary subtotal={subtotal} checkedCount={checkedCount} />
+              <OrderSummary
+                subtotal={subtotal}
+                checkedCount={checkedCount}
+              />
             </div>
           </div>
         )}

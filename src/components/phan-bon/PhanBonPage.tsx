@@ -8,13 +8,24 @@ import { ProductCard, ProductRow } from "@/components/home/ProductItem";
 import { ILeaf, ISearch, IGrid, IList, IFilter, IHome } from "@/components/icons";
 import PhanBonHero from "./PhanBonHero";
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 const PRICE_MIN = 0;
 const PRICE_MAX = 1_000_000;
 const PHAN_BON_SLUG = "phan-bon";
 
 type SortOption = "mac-dinh" | "gia-tang" | "gia-giam";
 type ViewMode = "grid" | "list";
+
+/* ── Fake data: nhóm phân bón (chỉ để xem layout) ── */
+const FERTILIZER_GROUPS: { label: string; count: number }[] = [
+  { label: "Tất cả", count: 0 },
+  { label: "Phân bón lá", count: 12 },
+  { label: "Phân NPK", count: 18 },
+  { label: "Phân hữu cơ", count: 9 },
+  { label: "Phân vi sinh", count: 6 },
+  { label: "Phân đơn (Đạm, Lân, Kali)", count: 8 },
+  { label: "Phân trung - vi lượng", count: 5 },
+];
 
 export default function PhanBonPage() {
   /* ── Catalog state ── */
@@ -33,6 +44,8 @@ export default function PhanBonPage() {
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  /* ── Fake filter: nhóm phân bón (chỉ để xem layout, chưa nối API) ── */
+  const [activeGroup, setActiveGroup] = useState("Tất cả");
 
   /* ── Tìm category "Phân Bón" theo slug ── */
   useEffect(() => {
@@ -94,16 +107,17 @@ export default function PhanBonPage() {
     setSearch("");
     setPriceRange([PRICE_MIN, PRICE_MAX]);
     setSortBy("mac-dinh");
+    setActiveGroup("Tất cả");
     setPage(1);
   };
 
   return (
-    <div className="bg-gradient-to-b from-[#f9fcfb] to-[#f4f7f6] min-h-screen text-gray-800 pb-16 font-sans">
+    <div className="bg-[#e5e7eb] min-h-screen text-gray-800 pb-16 font-sans">
       {/* ── Hero Banner ── */}
       <PhanBonHero />
 
       {/* ── Catalog Section ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+      <section className="max-w-370 mx-auto px-4 sm:px-6 lg:px-8 mt-12">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-xs text-gray-500">
           <Link href="/" className="flex items-center gap-1 hover:text-[#007e42]">
@@ -116,13 +130,11 @@ export default function PhanBonPage() {
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar (desktop) */}
-          <aside className="w-full lg:w-72 shrink-0 hidden lg:block space-y-5">
+          <aside className="w-full lg:w-64 shrink-0 hidden lg:block space-y-5">
             {/* Search */}
-            <div className="overflow-hidden rounded-xl border border-[#007e42]/15 bg-white shadow-md">
-              <div className="px-4 py-2.5" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
-                <h3 className="text-sm font-bold text-white">Tìm kiếm</h3>
-              </div>
-              <div className="p-4">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tìm kiếm</h3>
+              <div>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     <ISearch />
@@ -141,12 +153,36 @@ export default function PhanBonPage() {
               </div>
             </div>
 
-            {/* Price */}
-            <div className="overflow-hidden rounded-xl border border-[#007e42]/15 bg-white shadow-md">
-              <div className="px-4 py-2.5" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
-                <h3 className="text-sm font-bold text-white">Lọc theo giá</h3>
+            {/* Nhóm phân bón (fake data – chỉ xem layout) */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nhóm phân bón</h3>
+              <div>
+                <div className="flex flex-col gap-1.5">
+                  {FERTILIZER_GROUPS.map((g) => (
+                    <button
+                      key={g.label}
+                      onClick={() => {
+                        setActiveGroup(g.label);
+                        setPage(1);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left ${activeGroup === g.label ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+                    >
+                      <span>{g.label}</span>
+                      {g.count > 0 && (
+                        <span className={`px-2 py-0.5 rounded text-[10px] ${activeGroup === g.label ? "bg-[#007e42] text-white" : "bg-gray-100 text-gray-400"}`}>
+                          {g.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="p-4 space-y-2">
+            </div>
+
+            {/* Price */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Lọc theo giá</h3>
+              <div className="space-y-2">
                 <input
                   type="range"
                   min={PRICE_MIN}
@@ -195,6 +231,25 @@ export default function PhanBonPage() {
                     className="w-full bg-gray-50 border rounded-xl py-2 px-3 text-xs"
                     placeholder="Nhập tên..."
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase">Nhóm phân bón</h4>
+                  <div className="flex flex-col gap-1">
+                    {FERTILIZER_GROUPS.map((g) => (
+                      <button
+                        key={g.label}
+                        onClick={() => {
+                          setActiveGroup(g.label);
+                          setPage(1);
+                        }}
+                        className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition text-left ${activeGroup === g.label ? "bg-emerald-50 text-[#007e42]" : "text-gray-600"}`}
+                      >
+                        <span>{g.label}</span>
+                        {g.count > 0 && <span className="text-[10px] text-gray-400">({g.count})</span>}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -294,9 +349,9 @@ export default function PhanBonPage() {
 
             {/* Loading */}
             {loading && !error && (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                  <div key={i} className="h-80 animate-pulse rounded-xl border border-gray-100 bg-gray-50" />
+                  <div key={i} className="h-96 animate-pulse rounded-xl border border-gray-300/50 bg-white/40" />
                 ))}
               </div>
             )}
@@ -329,7 +384,7 @@ export default function PhanBonPage() {
 
             {/* Grid */}
             {!loading && !error && total > 0 && viewMode === "grid" && (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {displayed.map((p) => (
                   <ProductCard key={p._id} product={p} />
                 ))}
