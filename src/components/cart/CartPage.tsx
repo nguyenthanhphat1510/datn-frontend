@@ -266,7 +266,7 @@ function CartItemRow({
 }) {
   return (
     <div
-      className={`group flex items-center gap-3 border-b border-gray-100 p-4 transition-colors duration-200 last:border-b-0 ${
+      className={`group flex items-center gap-3 border-b border-gray-300 p-4 transition-colors duration-200 last:border-b-0 ${
         checked ? "bg-emerald-50/40" : "bg-white"
       }`}
     >
@@ -523,27 +523,37 @@ function OrderSummary({
       </div>
 
       {/* Payment logos */}
-      <div className="flex items-center justify-center gap-2 border-t border-gray-100 pt-3">
-        {PAYMENT_METHODS.map((p) => (
-          <span
-            key={p.label}
-            className="flex h-7 items-center justify-center rounded-md border border-gray-200 bg-white px-2 text-[10px] font-bold tracking-tight shadow-sm"
-            style={{ color: p.color }}
-          >
-            {p.label}
-          </span>
-        ))}
+      <div className="flex flex-wrap items-center justify-center gap-2 border-t border-gray-100 pt-3">
+        {PAYMENT_METHODS.map((p) =>
+          p.img ? (
+            <span
+              key={p.label}
+              className="flex h-7 items-center justify-center rounded-md border border-gray-200 bg-white px-1.5 shadow-sm"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.img} alt={p.label} className="h-4 w-auto object-contain" />
+            </span>
+          ) : (
+            <span
+              key={p.label}
+              className="flex h-7 items-center justify-center rounded-md border border-gray-200 bg-white px-2 text-[10px] font-bold tracking-tight shadow-sm"
+              style={{ color: p.color }}
+            >
+              {p.label}
+            </span>
+          ),
+        )}
       </div>
     </div>
   );
 }
 
 /* Logo thanh toán (UI tĩnh — trang trí) */
-const PAYMENT_METHODS = [
+const PAYMENT_METHODS: { label: string; color?: string; img?: string }[] = [
+  { label: "VNPAY", img: "/vnpay.png" },
+  { label: "MoMo", img: "/momo.png" },
   { label: "VISA", color: "#1a1f71" },
   { label: "Mastercard", color: "#eb001b" },
-  { label: "PayPal", color: "#003087" },
-  { label: "ApplePay", color: "#000000" },
 ];
 
 /* ─────────────────────────────────────────
@@ -725,7 +735,7 @@ export default function CartPage() {
             {/* ── Left: items ── */}
             <div className="flex min-w-0 flex-1 flex-col">
               {/* Toolbar — header cột, dính liền lên đầu danh sách */}
-              <div className="flex items-center gap-3 rounded-t-xl border border-b-0 border-gray-200 bg-[#dadde2] px-4 py-2.5">
+              <div className="flex items-center gap-3 rounded-t-xl border border-b-0 border-gray-300 bg-[#dadde2] px-4 py-2.5">
                 {/* Select all */}
                 <button
                   onClick={toggleAll}
@@ -766,7 +776,7 @@ export default function CartPage() {
               </div>
 
               {/* Item list — các dòng nối tiếp, bo góc dưới */}
-              <div className="flex flex-col overflow-hidden rounded-b-xl border border-gray-100">
+              <div className="flex flex-col overflow-hidden rounded-b-xl border border-gray-300">
                 {items.map((item) => (
                   <CartItemRow
                     key={item.productId}

@@ -99,30 +99,6 @@ function ITruck() {
   );
 }
 
-function IBank() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m3 21 18 0" />
-      <path d="M3 10h18" />
-      <path d="m5 6 7-3 7 3" />
-      <path d="M4 10v11" />
-      <path d="M20 10v11" />
-      <path d="M8 14v3" />
-      <path d="M12 14v3" />
-      <path d="M16 14v3" />
-    </svg>
-  );
-}
-
 /* Phương thức thanh toán (UI-only — backend chưa xử lý) */
 type PayMethod = "cod" | "vnpay" | "momo";
 
@@ -142,13 +118,19 @@ const PAY_METHODS: {
     id: "vnpay",
     label: "VNPAY",
     desc: "Quét QR / thẻ ngân hàng (Đang bảo trì)",
-    icon: <IBank />,
+    icon: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/vnpay.png" alt="VNPAY" className="h-6 w-6 rounded object-contain" />
+    ),
   },
   {
     id: "momo",
     label: "Ví MoMo",
     desc: "Thanh toán qua ví MoMo (Đang bảo trì)",
-    icon: <IBank />,
+    icon: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/momo.png" alt="MoMo" className="h-6 w-6 rounded object-contain" />
+    ),
   },
 ];
 

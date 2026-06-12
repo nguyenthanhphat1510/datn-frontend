@@ -26,7 +26,7 @@ export default function OrderSuccess() {
 
   if (!ready) {
     return (
-      <section className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
+      <section className="min-h-screen bg-[#e5e7eb] px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-2xl text-center text-sm text-gray-400">
           Đang tải...
         </div>
@@ -37,7 +37,7 @@ export default function OrderSuccess() {
   const addr = order?.shippingAddress;
 
   return (
-    <section className="min-h-screen bg-gray-50/60 px-4 py-8 sm:px-6 lg:px-10">
+    <section className="min-h-screen bg-[#e5e7eb] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-2xl">
         {/* Banner thành công */}
         <div className="flex flex-col items-center rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">

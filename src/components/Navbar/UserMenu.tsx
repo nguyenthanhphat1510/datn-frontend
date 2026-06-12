@@ -24,6 +24,68 @@ function IconUser() {
   );
 }
 
+function IconAccount() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
+function IconOrders() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function IconLogout() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
 function IconChevron({ open }: { open: boolean }) {
   return (
     <svg
@@ -122,22 +184,25 @@ export default function UserMenu({ variant, onNavigate }: Props) {
         <Link
           href="/tai-khoan"
           onClick={onNavigate}
-          className="rounded-md px-3 py-2 text-sm text-white/90 transition hover:bg-white/15"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/90 transition hover:bg-white/15"
         >
+          <IconAccount />
           Tài khoản của tôi
         </Link>
         <Link
           href="/don-hang"
           onClick={onNavigate}
-          className="rounded-md px-3 py-2 text-sm text-white/90 transition hover:bg-white/15"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/90 transition hover:bg-white/15"
         >
+          <IconOrders />
           Đơn hàng của tôi
         </Link>
         <button
           type="button"
           onClick={handleLogout}
-          className="rounded-md px-3 py-2 text-left text-sm font-semibold text-red-200 transition hover:bg-white/15"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-semibold text-red-200 transition hover:bg-white/15"
         >
+          <IconLogout />
           Đăng xuất
         </button>
       </div>
@@ -175,15 +240,17 @@ export default function UserMenu({ variant, onNavigate }: Props) {
             <Link
               href="/tai-khoan"
               onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm text-gray-700 transition hover:bg-[#f1f7f3] hover:text-[#007e42]"
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 transition hover:bg-[#f1f7f3] hover:text-[#007e42]"
             >
+              <IconAccount />
               Tài khoản của tôi
             </Link>
             <Link
               href="/don-hang"
               onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm text-gray-700 transition hover:bg-[#f1f7f3] hover:text-[#007e42]"
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 transition hover:bg-[#f1f7f3] hover:text-[#007e42]"
             >
+              <IconOrders />
               Đơn hàng của tôi
             </Link>
           </div>
@@ -191,8 +258,9 @@ export default function UserMenu({ variant, onNavigate }: Props) {
             <button
               type="button"
               onClick={handleLogout}
-              className="block w-full px-4 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
+              className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
             >
+              <IconLogout />
               Đăng xuất
             </button>
           </div>

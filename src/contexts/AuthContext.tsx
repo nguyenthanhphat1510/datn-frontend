@@ -20,6 +20,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName?: string) => Promise<void>;
   loginWithToken: (token: string) => Promise<void>;
+  /** Cập nhật thông tin user hiện tại (đồng bộ localStorage). */
+  updateUser: (patch: Partial<AuthUser>) => void;
   logout: () => void;
 }
 
@@ -79,6 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -87,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, loginWithToken, logout }}
+      value={{ user, loading, login, register, loginWithToken, updateUser, logout }}
     >
       {children}
     </AuthContext.Provider>
