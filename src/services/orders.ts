@@ -5,6 +5,8 @@ export interface ShippingAddressInput {
   fullName: string;
   phone: string;
   address: string; // địa chỉ đầy đủ (1 chuỗi gộp)
+  lat?: number; // toạ độ resolve từ gogoduk — để backend tính phí ship
+  lon?: number;
 }
 
 export interface OrderItem {
@@ -19,7 +21,8 @@ export interface OrderItem {
 export interface Order {
   _id: string;
   items: OrderItem[];
-  total: number;
+  shippingFee: number; // phí ship đã chốt server-side
+  total: number; // hàng + ship
   status: string; // pending | confirmed | shipping | delivered | cancelled
   shippingAddress: ShippingAddressInput;
   note?: string;

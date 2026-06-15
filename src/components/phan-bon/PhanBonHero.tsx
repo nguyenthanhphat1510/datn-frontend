@@ -5,25 +5,25 @@ import Link from "next/link";
 
 const products = [
   {
-    img: "/phanbon.png",
+    img: "/phan-dam-ca-mau.png",
     label: "Phân Đạm",
     sub: "Cho lá xanh tốt",
     accent: "#10b981",
   },
   {
-    img: "/phanbon.png",
+    img: "/phan-npk-gold-ca-mau.png",
     label: "Phân NPK",
     sub: "Cân đối toàn diện",
     accent: "#059669",
   },
   {
-    img: "/phanbon.png",
-    label: "Hữu cơ vi sinh",
-    sub: "Cải tạo đất phì nhiêu",
+    img: "/dap-18-46-hat-vang.png",
+    label: "Phân DAP",
+    sub: "Giàu đạm và lân",
     accent: "#84cc16",
   },
   {
-    img: "/phanbon.png",
+    img: "/kali-ca-mau-60.png",
     label: "Phân Kali",
     sub: "Đòng to, hạt chắc vàng",
     accent: "#d97706",
@@ -34,10 +34,7 @@ export default function PhanBonHero() {
   return (
     <section
       className="relative w-full overflow-hidden py-12 sm:py-16 lg:py-20"
-      style={{
-        background:
-          "linear-gradient(135deg, #ffffff 0%, #fafefc 30%, #f0fcf6 65%, #e1faee 100%)",
-      }}
+      style={{ background: "#ffffff" }}
     >
       {/* === Light Ambient Green Glows === */}
       <div
@@ -67,9 +64,15 @@ export default function PhanBonHero() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/10 shadow-[0_2px_10px_rgba(4,120,87,0.03)]"
               style={{ background: "rgba(16,185,129,0.04)" }}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <Image
+                src="/la_lua.png"
+                alt="Lá lúa"
+                width={16}
+                height={16}
+                className="h-4 w-4 object-contain"
+              />
               <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
-                🌾 Kính chào bà con nông dân
+                Kính chào bà con nông dân
               </span>
             </div>
 
@@ -186,19 +189,21 @@ export default function PhanBonHero() {
                 return (
                   <div
                     key={product.label}
-                    className={`transition-all duration-500 ${
-                      isEven ? "translate-y-[-12px]" : "translate-y-[12px]"
-                    }`}
+                    className={`${isEven ? "-translate-y-1.5" : "translate-y-1.5"}`}
+                    style={{
+                      animation: "riseIn 0.6s ease-out both",
+                      animationDelay: `${idx * 0.15}s`,
+                    }}
                   >
                     <div
-                      className="group relative overflow-hidden rounded-2xl bg-white border border-emerald-500/10 shadow-[0_8px_25px_rgba(4,120,87,0.04)] transition-all duration-500 hover:-translate-y-2 cursor-pointer hover:shadow-[0_15px_35px_rgba(4,120,87,0.1)]"
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-[0_4px_16px_rgba(4,120,87,0.06)] transition-all duration-500 hover:-translate-y-2 hover:border-emerald-300 hover:shadow-[0_12px_28px_rgba(4,120,87,0.12)]"
                       style={{
                         animation: "floatCard 6s ease-in-out infinite",
-                        animationDelay: `${idx * 0.4}s`,
+                        animationDelay: `${0.9 + idx * 0.4}s`,
                       }}
                     >
                       {/* Aspect Ratio Container for image */}
-                      <div className="relative w-full aspect-[4/5] flex items-center justify-center p-3 bg-gradient-to-b from-emerald-50/10 to-transparent">
+                      <div className="relative w-full aspect-[4/5] flex items-center justify-center p-3 bg-gradient-to-b from-[#007e42]/25 via-[#007e42]/8 to-white">
                         <Image
                           src={product.img}
                           alt={product.label}
@@ -208,11 +213,17 @@ export default function PhanBonHero() {
                           className="object-contain p-2 drop-shadow-[0_6px_10px_rgba(4,120,87,0.05)] transition-transform duration-500 group-hover:scale-[1.06]"
                         />
                       </div>
-                      
+
                       {/* Bottom info section */}
-                      <div className="p-3 text-center border-t border-emerald-500/5 bg-white">
-                        <p className="text-xs font-black text-slate-800 tracking-wide">{product.label}</p>
-                        <p className="text-[10px] font-bold mt-0.5" style={{ color: product.accent }}>
+                      <div className="flex min-h-17 flex-col items-center justify-center gap-1.5 border-t border-emerald-50 p-3 text-center">
+                        <p className="text-[13px] font-extrabold tracking-wide text-slate-800">
+                          {product.label}
+                        </p>
+                        <span
+                          className="h-0.5 w-6 rounded-full"
+                          style={{ background: product.accent }}
+                        />
+                        <p className="text-[10px] font-semibold text-slate-500">
                           {product.sub}
                         </p>
                       </div>
@@ -236,6 +247,10 @@ export default function PhanBonHero() {
           0%, 100% { transform: translateY(0); }
           50%      { transform: translateY(-8px); }
         }
+        @keyframes riseIn {
+          0%   { opacity: 0; transform: translateY(40px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
       {/* Wave separator matching the parent page background color (#f9fcfb) */}
@@ -244,7 +259,7 @@ export default function PhanBonHero() {
           viewBox="0 0 1440 32"
           xmlns="http://www.w3.org/2000/svg"
           preserveAspectRatio="none"
-          className="w-full h-6 sm:h-8 text-[#f9fcfb] fill-current"
+          className="w-full h-6 sm:h-8 text-[#e5e7eb] fill-current"
         >
           <path d="M0,24 C320,32 640,32 960,16 C1120,8 1280,8 1440,24 L1440,32 L0,32 Z" />
         </svg>

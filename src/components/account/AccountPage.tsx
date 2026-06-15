@@ -4,7 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAddresses, type Address } from "@/services/addresses";
+import {
+  getAddresses,
+  createAddress,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress,
+  type Address,
+} from "@/services/addresses";
+import AddressForm, {
+  EMPTY_ADDRESS,
+  validateAddress,
+  type AddressFormValues,
+} from "@/components/checkout/AddressForm";
+import type { PlaceDetail } from "@/services/addresses";
 
 /* ─────────────────────────────────────────
    Icon nhỏ dùng trong trang
@@ -74,6 +87,127 @@ export default function AccountPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loadingAddr, setLoadingAddr] = useState(true);
   const [error, setError] = useState("");
+
+  /* ── CRUD sổ địa chỉ ── */
+  // null = đóng form; "new" = thêm; string = đang sửa địa chỉ có _id đó.
+  const [addrEditing, setAddrEditing] = useState<"new" | string | null>(null);
+  const [addrForm, setAddrForm] = useState<AddressFormValues>(EMPTY_ADDRESS);
+  const [addrErrors, setAddrErrors] = useState<
+    Partial<Record<keyof AddressFormValues, string>>
+  >({});
+  // Toạ độ resolve được khi thêm/sửa (để lưu kèm, phục vụ tính phí ship).
+  const [addrPlace, setAddrPlace] = useState<PlaceDetail | null>(null);
+  const [savingAddr, setSavingAddr] = useState(false);
+  // _id đang bị xóa (để disable nút trong lúc gọi API).
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function openAddAddress() {
+    setAddrEditing("new");
+    setAddrForm({ ...EMPTY_ADDRESS, saveToBook: false });
+    setAddrErrors({});
+    setAddrPlace(null);
+    setError("");
+  }
+
+  function openEditAddress(addr: Address) {
+    setAddrEditing(addr._id);
+    setAddrForm({
+      fullName: addr.fullName,
+      phone: addr.phone,
+      address: addr.address,
+      saveToBook: false,
+    });
+    setAddrErrors({});
+    // Giữ toạ độ cũ nếu địa chỉ chưa bị sửa chuỗi.
+    setAddrPlace(
+      addr.lat != null && addr.lon != null
+        ? ({ address: addr.address, lat: addr.lat, lon: addr.lon } as PlaceDetail)
+        : null,
+    );
+    setError("");
+  }
+
+  function closeAddrForm() {
+    setAddrEditing(null);
+    setAddrErrors({});
+    setAddrPlace(null);
+  }
+
+  async function saveAddress() {
+    const errs = validateAddress(addrForm);
+    if (Object.keys(errs).length > 0) {
+      setAddrErrors(errs);
+      return;
+    }
+    setAddrErrors({});
+    setSavingAddr(true);
+    setError("");
+
+    // Chỉ kèm lat/lon khi đúng địa chỉ vừa resolve (chưa sửa tay sau đó).
+    const resolved =
+      addrPlace && addrPlace.address === addrForm.address.trim()
+        ? addrPlace
+        : null;
+    const payload = {
+      fullName: addrForm.fullName.trim(),
+      phone: addrForm.phone.trim(),
+      address: addrForm.address.trim(),
+      lat: resolved?.lat,
+      lon: resolved?.lon,
+    };
+
+    try {
+      if (addrEditing === "new") {
+        const created = await createAddress({
+          ...payload,
+          isDefault: addresses.length === 0, // địa chỉ đầu tiên → mặc định
+        });
+        setAddresses((prev) => [...prev, created]);
+      } else if (addrEditing) {
+        const updated = await updateAddress(addrEditing, payload);
+        setAddresses((prev) =>
+          prev.map((a) => (a._id === updated._id ? updated : a)),
+        );
+      }
+      closeAddrForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Lưu địa chỉ thất bại");
+    } finally {
+      setSavingAddr(false);
+    }
+  }
+
+  async function handleSetDefault(id: string) {
+    setError("");
+    try {
+      await setDefaultAddress(id);
+      // Cập nhật cờ mặc định cục bộ (chỉ 1 cái true).
+      setAddresses((prev) =>
+        prev.map((a) => ({ ...a, isDefault: a._id === id })),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Đặt mặc định thất bại",
+      );
+    }
+  }
+
+  async function handleDeleteAddress(id: string) {
+    if (!window.confirm("Xóa địa chỉ này khỏi sổ?")) return;
+    setError("");
+    setDeletingId(id);
+    try {
+      await deleteAddress(id);
+      // Đồng bộ lại từ server vì xóa địa chỉ mặc định có thể promote cái khác.
+      const list = await getAddresses();
+      setAddresses(list);
+      if (addrEditing === id) closeAddrForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Xóa địa chỉ thất bại");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   /* ── Chỉnh sửa thông tin cá nhân ── */
   const [editing, setEditing] = useState(false);
@@ -282,44 +416,158 @@ export default function AccountPage() {
             <h2 className="text-base font-extrabold text-gray-800">
               Sổ Địa Chỉ
             </h2>
-            <span className="text-xs text-gray-400">
-              {addresses.length} địa chỉ
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">
+                {addresses.length} địa chỉ
+              </span>
+              {addrEditing === null && (
+                <button
+                  type="button"
+                  onClick={openAddAddress}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#007e42] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#005f32]"
+                >
+                  + Thêm địa chỉ
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Form thêm mới (hiện ngay dưới header) */}
+          {addrEditing === "new" && (
+            <div className="mt-4 rounded-xl border-2 border-[#007e42]/20 bg-[#007e42]/[0.03] p-4">
+              <p className="mb-3 text-sm font-bold text-gray-700">
+                Thêm địa chỉ mới
+              </p>
+              <AddressForm
+                values={addrForm}
+                errors={addrErrors}
+                showSave={false}
+                onChange={setAddrForm}
+                onResolve={setAddrPlace}
+              />
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveAddress}
+                  disabled={savingAddr}
+                  className="rounded-lg bg-[#007e42] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#005f32] disabled:opacity-50"
+                >
+                  {savingAddr ? "Đang lưu..." : "Lưu địa chỉ"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeAddrForm}
+                  disabled={savingAddr}
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          )}
 
           {loadingAddr ? (
             <p className="mt-4 text-sm text-gray-400">Đang tải địa chỉ...</p>
-          ) : addresses.length === 0 ? (
+          ) : addresses.length === 0 && addrEditing !== "new" ? (
             <p className="mt-4 rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-              Bạn chưa lưu địa chỉ nào. Địa chỉ sẽ được lưu khi bạn đặt hàng.
+              Bạn chưa lưu địa chỉ nào. Nhấn “Thêm địa chỉ” để tạo mới.
             </p>
           ) : (
             <div className="mt-4 flex flex-col gap-3">
-              {addresses.map((addr) => (
-                <div
-                  key={addr._id}
-                  className="rounded-xl border-2 border-gray-200 p-4"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold text-gray-800">
-                      {addr.fullName}
-                    </span>
-                    <span className="text-sm text-gray-400">|</span>
-                    <span className="text-sm text-gray-600">{addr.phone}</span>
-                    {addr.isDefault && (
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-[#007e42]">
-                        Mặc định
-                      </span>
-                    )}
+              {addresses.map((addr) =>
+                addrEditing === addr._id ? (
+                  /* ── Form sửa địa chỉ này ── */
+                  <div
+                    key={addr._id}
+                    className="rounded-xl border-2 border-[#007e42]/30 bg-[#007e42]/[0.03] p-4"
+                  >
+                    <p className="mb-3 text-sm font-bold text-gray-700">
+                      Sửa địa chỉ
+                    </p>
+                    <AddressForm
+                      values={addrForm}
+                      errors={addrErrors}
+                      showSave={false}
+                      onChange={setAddrForm}
+                      onResolve={setAddrPlace}
+                    />
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={saveAddress}
+                        disabled={savingAddr}
+                        className="rounded-lg bg-[#007e42] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#005f32] disabled:opacity-50"
+                      >
+                        {savingAddr ? "Đang lưu..." : "Lưu thay đổi"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeAddrForm}
+                        disabled={savingAddr}
+                        className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Hủy
+                      </button>
+                    </div>
                   </div>
-                  <p className="mt-2 flex items-start gap-1.5 text-sm text-gray-600">
-                    <span className="mt-0.5 shrink-0">
-                      <IconPin />
-                    </span>
-                    {addr.address}
-                  </p>
-                </div>
-              ))}
+                ) : (
+                  /* ── Hiển thị địa chỉ ── */
+                  <div
+                    key={addr._id}
+                    className="rounded-xl border-2 border-gray-200 p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-gray-800">
+                        {addr.fullName}
+                      </span>
+                      <span className="text-sm text-gray-400">|</span>
+                      <span className="text-sm text-gray-600">
+                        {addr.phone}
+                      </span>
+                      {addr.isDefault && (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-[#007e42]">
+                          Mặc định
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 flex items-start gap-1.5 text-sm text-gray-600">
+                      <span className="mt-0.5 shrink-0">
+                        <IconPin />
+                      </span>
+                      {addr.address}
+                    </p>
+
+                    {/* Hành động: đặt mặc định / sửa / xóa */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+                      {!addr.isDefault && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetDefault(addr._id)}
+                          className="rounded-lg border border-[#007e42]/30 bg-[#007e42]/5 px-3 py-1.5 text-xs font-semibold text-[#007e42] transition hover:bg-[#007e42]/10"
+                        >
+                          Đặt làm mặc định
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openEditAddress(addr)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+                      >
+                        <IconEdit />
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAddress(addr._id)}
+                        disabled={deletingId === addr._id}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {deletingId === addr._id ? "Đang xóa..." : "Xóa"}
+                      </button>
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           )}
         </div>

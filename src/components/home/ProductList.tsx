@@ -10,7 +10,6 @@ import {
   IChevronDown,
   IFilter,
   IGrid,
-  IHome,
   IList,
   ILeaf,
 } from "@/components/icons";
@@ -242,11 +241,11 @@ function SidebarContent({
         <div className="px-4 py-3" style={{ background: "linear-gradient(135deg, #007e42 0%, #0a9d52 100%)" }}>
           <h3 className="text-base font-bold text-white">Danh mục</h3>
         </div>
-        <ul className="flex flex-col gap-1 p-2">
+        <ul className="flex flex-col gap-0.5 p-2">
           <li>
             <button
               onClick={() => setActiveCategory(ALL_CATEGORY)}
-              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition text-left ${activeCategory === ALL_CATEGORY ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+              className={`relative flex w-full items-center rounded-lg px-3 py-2 text-xs font-bold transition text-left ${activeCategory === ALL_CATEGORY ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
             >
               <span>Tất cả</span>
             </button>
@@ -255,7 +254,7 @@ function SidebarContent({
             <li key={cat._id}>
               <button
                 onClick={() => setActiveCategory(cat._id)}
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold transition text-left ${activeCategory === cat._id ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+                className={`relative flex w-full items-center rounded-lg px-3 py-2 text-xs font-bold transition text-left ${activeCategory === cat._id ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
               >
                 <span className="text-left">{cat.name}</span>
               </button>
@@ -285,10 +284,10 @@ function SidebarContent({
         <ul className="divide-y divide-gray-50 p-3">
           {newest.map((p) => (
             <li key={p._id} className="flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-emerald-50 overflow-hidden">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-emerald-50 p-1.5 overflow-hidden">
                 {p.images?.[0]?.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.images[0].url} alt={p.name} className="h-full w-full object-cover" />
+                  <img src={p.images[0].url} alt={p.name} className="h-full w-full object-contain" />
                 ) : (
                   <ILeaf size={34} />
                 )}
@@ -297,7 +296,7 @@ function SidebarContent({
                 <Link href={`/san-pham/${p._id}`} className="line-clamp-2 text-xs font-medium text-gray-700 hover:text-[#007e42]">
                   {p.name}
                 </Link>
-                <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="flex items-center gap-1.5 mt-1.5">
                   <p className="text-xs font-bold text-[#007e42]">{fmt(p.price)}</p>
                   {p.rating ? <Stars rating={p.rating} /> : null}
                 </div>
@@ -381,11 +380,6 @@ export default function ProductList() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageItems = getPaginationItems(page, totalPages);
 
-  const activeCategoryName = useMemo(() => {
-    if (activeCategory === ALL_CATEGORY) return null;
-    return categories.find((c) => c._id === activeCategory)?.name ?? null;
-  }, [activeCategory, categories]);
-
   const handleCategoryChange = useCallback((c: string) => {
     setActiveCategory(c);
     setPage(1);
@@ -404,22 +398,6 @@ export default function ProductList() {
       <div className="absolute inset-0 -z-10 opacity-[0.02] bg-[radial-gradient(rgba(0,126,66,0.4)_1px,transparent_1px)] [background-size:24px_24px]" />
 
       <div className="mx-auto max-w-370">
-        {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1.5 text-xs text-gray-500">
-          <Link href="/" className="flex items-center gap-1 hover:text-[#007e42]">
-            <IHome />
-            <span>Trang chủ</span>
-          </Link>
-          <span className="text-gray-300">/</span>
-          <Link href="/san-pham" className="hover:text-[#007e42]">Sản phẩm</Link>
-          {activeCategoryName && (
-            <>
-              <span className="text-gray-300">/</span>
-              <span className="font-semibold text-[#007e42]">{activeCategoryName}</span>
-            </>
-          )}
-        </nav>
-
         {/* Section Header */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#007e42]/20 bg-emerald-50 px-4 py-1.5 mb-3">

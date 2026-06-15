@@ -6,16 +6,20 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { fmt } from "@/lib/format";
-import { getAddresses, createAddress, type Address } from "@/services/addresses";
+import {
+  getAddresses,
+  createAddress,
+  type Address,
+  type PlaceDetail,
+} from "@/services/addresses";
+import { SHOP_LOCATION } from "@/lib/shop-location";
 import { createOrder, type CreateOrderInput } from "@/services/orders";
+import { calcShippingFee } from "@/lib/shipping";
 import AddressForm, {
   EMPTY_ADDRESS,
   validateAddress,
   type AddressFormValues,
 } from "./AddressForm";
-
-const SHIPPING_FEE = 30000;
-const FREE_SHIP_THRESHOLD = 500000;
 
 /** Key tạm để truyền Order vừa tạo sang trang "đặt hàng thành công". */
 export const ORDER_SUCCESS_KEY = "last_order";
@@ -198,6 +202,8 @@ export default function CheckoutPage() {
   const [formErrors, setFormErrors] = useState<
     Partial<Record<keyof AddressFormValues, string>>
   >({});
+  // Địa chỉ chi tiết (lat/lon/quận/thành phố) khi user chọn 1 gợi ý từ autocomplete.
+  const [placeDetail, setPlaceDetail] = useState<PlaceDetail | null>(null);
 
   const [note, setNote] = useState("");
   const [payMethod, setPayMethod] = useState<PayMethod>("cod");
@@ -246,8 +252,33 @@ export default function CheckoutPage() {
     () => items.reduce((sum, i) => sum + i.subtotal, 0),
     [items],
   );
-  const shipping = subtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
+
+  // Toạ độ hiệu dụng để tính phí ship:
+  // - mode "new": từ địa chỉ vừa resolve (placeDetail)
+  // - mode "select": từ địa chỉ đang chọn trong sổ (nếu đã lưu lat/lon)
+  const selectedAddr = addresses.find((a) => a._id === selectedId);
+  const latLon =
+    mode === "new"
+      ? { lat: placeDetail?.lat, lon: placeDetail?.lon }
+      : { lat: selectedAddr?.lat, lon: selectedAddr?.lon };
+
+  const { fee: shipping, distanceKm } = calcShippingFee(
+    subtotal,
+    latLon.lat,
+    latLon.lon,
+  );
   const total = subtotal + shipping;
+
+  // Có toạ độ để xác định vị trí giao? (đúng cho cả nhập mới lẫn chọn từ sổ)
+  const hasGeo = latLon.lat != null && latLon.lon != null;
+  // Dòng mô tả vị trí: mode "new" hiện quận/thành phố từ resolve;
+  // mode "select" hiện chuỗi địa chỉ của địa chỉ đang chọn trong sổ.
+  const geoArea =
+    mode === "new"
+      ? placeDetail
+        ? [placeDetail.district, placeDetail.city].filter(Boolean).join(", ")
+        : ""
+      : (selectedAddr?.address ?? "");
 
   /* ── Đặt hàng ── */
   async function handlePlaceOrder() {
@@ -265,11 +296,18 @@ export default function CheckoutPage() {
         return;
       }
       setFormErrors({});
+      // Chỉ kèm lat/lon khi địa chỉ form đúng là cái vừa resolve (chưa sửa tay).
+      const resolved =
+        placeDetail && placeDetail.address === form.address.trim()
+          ? placeDetail
+          : null;
       body = {
         shippingAddress: {
           fullName: form.fullName.trim(),
           phone: form.phone.trim(),
           address: form.address.trim(),
+          lat: resolved?.lat,
+          lon: resolved?.lon,
         },
         note: note.trim() || undefined,
       };
@@ -279,11 +317,17 @@ export default function CheckoutPage() {
     try {
       // Lưu vào sổ nếu user chọn (best-effort, không chặn đặt hàng nếu lỗi).
       if (mode === "new" && form.saveToBook) {
+        const resolved =
+          placeDetail && placeDetail.address === form.address.trim()
+            ? placeDetail
+            : null;
         try {
           await createAddress({
             fullName: form.fullName.trim(),
             phone: form.phone.trim(),
             address: form.address.trim(),
+            lat: resolved?.lat,
+            lon: resolved?.lon,
             isDefault: addresses.length === 0, // địa chỉ đầu tiên → mặc định
           });
         } catch {
@@ -398,6 +442,19 @@ export default function CheckoutPage() {
                 )}
               </div>
 
+              {/* Vị trí xuất hàng cố định của shop — cho người dùng biết giao từ đâu */}
+              <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-2.5">
+                <span className="mt-0.5 shrink-0 text-[#007e42]">
+                  <ITruck />
+                </span>
+                <div className="min-w-0 text-sm">
+                  <p className="font-semibold text-gray-700">
+                    Giao hàng từ {SHOP_LOCATION.name}
+                  </p>
+                  <p className="text-gray-500">{SHOP_LOCATION.address}</p>
+                </div>
+              </div>
+
               {addrLoading ? (
                 <p className="text-sm text-gray-400">Đang tải địa chỉ...</p>
               ) : mode === "select" && addresses.length > 0 ? (
@@ -417,7 +474,38 @@ export default function CheckoutPage() {
                   errors={formErrors}
                   showSave={!!user}
                   onChange={setForm}
+                  onResolve={setPlaceDetail}
                 />
+              )}
+
+              {/* Vị trí giao hàng đã xác định — hiện cho cả nhập mới lẫn chọn từ sổ */}
+              {(hasGeo || (shipping === 0 && (selectedId || placeDetail))) && (
+                <div className="mt-3 rounded-xl border-2 border-[#007e42]/40 bg-[#007e42]/8 px-4 py-3.5 text-sm text-gray-700 shadow-sm">
+                  <p className="mb-1.5 flex items-center gap-1.5 font-bold text-[#007e42]">
+                    <ICheck />
+                    Đã xác định vị trí giao hàng
+                  </p>
+                  {geoArea && (
+                    <p className="font-medium text-gray-700">{geoArea}</p>
+                  )}
+                  {distanceKm != null && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 shadow-sm ring-1 ring-gray-200">
+                        <ITruck />
+                        Cách kho ~{distanceKm.toFixed(1)} km
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                        Phí ship: {shipping === 0 ? "Miễn phí" : fmt(shipping)}
+                      </span>
+                    </div>
+                  )}
+                  {distanceKm == null && shipping === 0 && (
+                    <span className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                      <ICheck />
+                      Miễn phí vận chuyển
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 
@@ -489,20 +577,20 @@ export default function CheckoutPage() {
               <div className="flex max-h-64 flex-col gap-3 overflow-y-auto border-b border-gray-100 pb-3">
                 {items.map((item) => (
                   <div key={item.productId} className="flex items-center gap-3">
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-emerald-50">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
                       {item.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={item.imageUrl}
                           alt={item.name}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain p-1"
                         />
                       ) : null}
-                      <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#007e42] px-1 text-[10px] font-bold text-white">
+                      <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#007e42] px-1 text-[10px] font-bold text-white shadow">
                         {item.quantity}
                       </span>
                     </div>
-                    <p className="line-clamp-2 min-w-0 flex-1 text-xs font-medium text-gray-700">
+                    <p className="line-clamp-2 min-w-0 flex-1 text-sm font-medium text-gray-700">
                       {item.name}
                     </p>
                     <span className="shrink-0 text-sm font-semibold text-gray-800">

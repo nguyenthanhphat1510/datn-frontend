@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   suggestAddress,
+  resolvePlace,
   type AddressPrediction,
+  type PlaceDetail,
 } from "@/services/addresses";
 import type { ShippingAddressInput } from "@/services/orders";
 
@@ -150,14 +152,18 @@ function AddressAutocomplete({
   value,
   error,
   onChange,
+  onResolve,
 }: {
   value: string;
   error?: string;
   onChange: (v: string) => void;
+  /** Gọi sau khi resolve placeId → trả địa chỉ chi tiết (lat/lon/quận/thành phố). */
+  onResolve?: (detail: PlaceDetail | null) => void;
 }) {
   const [predictions, setPredictions] = useState<AddressPrediction[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   // Tăng mỗi lần gọi để bỏ kết quả của request cũ về sau (race condition).
   const reqId = useRef(0);
@@ -213,6 +219,14 @@ function AddressAutocomplete({
     onChange(p.text);
     setOpen(false);
     setPredictions([]);
+    // Lấy địa chỉ chi tiết (lat/lon/quận/thành phố) từ placeId vừa chọn.
+    if (onResolve) {
+      setResolving(true);
+      resolvePlace(p.placeId)
+        .then((detail) => onResolve(detail))
+        .catch(() => onResolve(null))
+        .finally(() => setResolving(false));
+    }
   }
 
   return (
@@ -244,8 +258,8 @@ function AddressAutocomplete({
           }`}
         />
 
-        {/* Spinner bên phải khi đang tìm */}
-        {loading && (
+        {/* Spinner bên phải khi đang tìm / đang lấy chi tiết */}
+        {(loading || resolving) && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#007e42]">
             <ISpinner />
           </span>
@@ -307,11 +321,14 @@ export default function AddressForm({
   errors,
   showSave,
   onChange,
+  onResolve,
 }: {
   values: AddressFormValues;
   errors: Partial<Record<keyof AddressFormValues, string>>;
   showSave: boolean;
   onChange: (next: AddressFormValues) => void;
+  /** Nhận địa chỉ chi tiết (lat/lon/quận/thành phố) khi user chọn 1 gợi ý. */
+  onResolve?: (detail: PlaceDetail | null) => void;
 }) {
   function set<K extends keyof AddressFormValues>(
     key: K,
@@ -346,6 +363,7 @@ export default function AddressForm({
         value={values.address}
         error={errors.address}
         onChange={(v) => set("address", v)}
+        onResolve={onResolve}
       />
 
       {showSave && (

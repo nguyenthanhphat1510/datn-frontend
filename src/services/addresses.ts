@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
 
 /* ─── Shape khớp với backend Address (addresses entity/dto) ─── */
 export interface Address {
@@ -6,6 +6,8 @@ export interface Address {
   fullName: string;
   phone: string;
   address: string; // địa chỉ đầy đủ (1 chuỗi gộp)
+  lat?: number; // toạ độ (nếu địa chỉ được lưu qua resolve)
+  lon?: number;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
@@ -16,6 +18,8 @@ export interface AddressInput {
   fullName: string;
   phone: string;
   address: string;
+  lat?: number; // toạ độ resolve từ gogoduk — để tính phí ship
+  lon?: number;
   isDefault?: boolean;
 }
 
@@ -36,6 +40,28 @@ export function suggestAddress(
   });
 }
 
+/* ─── Địa chỉ chi tiết (proxy gogoduk /v1/place/resolve) ─── */
+export interface PlaceDetail {
+  placeId: string;
+  name: string;
+  address: string;
+  lat: number;
+  lon: number;
+  district: string;
+  city: string;
+  country: string;
+}
+
+/**
+ * GET /address-suggest/resolve?id=... — lấy địa chỉ chi tiết từ placeId.
+ * Trả null nếu không resolve được. Public.
+ */
+export function resolvePlace(placeId: string): Promise<PlaceDetail | null> {
+  return apiGet<PlaceDetail | null>("/address-suggest/resolve", {
+    id: placeId,
+  });
+}
+
 /** GET /addresses — danh sách địa chỉ của user (mặc định lên đầu). */
 export function getAddresses(): Promise<Address[]> {
   return apiGet<Address[]>("/addresses", undefined, { auth: true });
@@ -44,4 +70,24 @@ export function getAddresses(): Promise<Address[]> {
 /** POST /addresses — thêm địa chỉ mới vào sổ. */
 export function createAddress(dto: AddressInput): Promise<Address> {
   return apiPost<Address>("/addresses", dto, { auth: true });
+}
+
+/** PATCH /addresses/:id — cập nhật địa chỉ. */
+export function updateAddress(
+  id: string,
+  dto: Partial<AddressInput>,
+): Promise<Address> {
+  return apiPatch<Address>(`/addresses/${id}`, dto, { auth: true });
+}
+
+/** PATCH /addresses/:id/default — đặt làm địa chỉ mặc định. */
+export function setDefaultAddress(id: string): Promise<Address> {
+  return apiPatch<Address>(`/addresses/${id}/default`, undefined, {
+    auth: true,
+  });
+}
+
+/** DELETE /addresses/:id — xóa địa chỉ khỏi sổ. */
+export function deleteAddress(id: string): Promise<{ message: string }> {
+  return apiDelete<{ message: string }>(`/addresses/${id}`, { auth: true });
 }

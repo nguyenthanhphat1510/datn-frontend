@@ -44,7 +44,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/san-pham/${product._id}`}
-      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-transparent bg-white/40 transition-all duration-300 hover:border-[#007e42]/30 hover:bg-white hover:shadow-xl"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white/40 transition-all duration-300 hover:bg-white"
     >
       {/* Badges */}
       <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
@@ -103,7 +103,7 @@ export function ProductRow({ product }: { product: Product }) {
   return (
     <Link
       href={`/san-pham/${product._id}`}
-      className="group flex items-center gap-4 rounded-xl border border-transparent bg-white/40 p-4 transition hover:border-[#007e42]/30 hover:bg-white hover:shadow-md"
+      className="group flex items-center gap-4 rounded-xl bg-white/40 p-4 transition hover:bg-white"
     >
       <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg">
         <ProductImageBox product={product} size={40} />

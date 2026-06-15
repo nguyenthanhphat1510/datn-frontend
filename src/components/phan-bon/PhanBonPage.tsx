@@ -165,7 +165,7 @@ export default function PhanBonPage() {
                         setActiveGroup(g.label);
                         setPage(1);
                       }}
-                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left ${activeGroup === g.label ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+                      className={`relative flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition text-left ${activeGroup === g.label ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
                     >
                       <span>{g.label}</span>
                       {g.count > 0 && (

@@ -77,13 +77,25 @@ export default function HeroImage() {
 
             {/* Eyebrow badge */}
             <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-400/30"
-              style={{ background: "rgba(52,211,153,0.08)" }}
+              className="inline-flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-full border border-emerald-300/40 shadow-lg shadow-emerald-900/30 backdrop-blur-sm"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(52,211,153,0.18) 0%, rgba(16,185,129,0.06) 100%)",
+              }}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">
-                🌾 Nông nghiệp 4.0
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400/20 ring-1 ring-emerald-300/40">
+                <Image
+                  src="/la_lua.png"
+                  alt="Lá lúa"
+                  width={18}
+                  height={18}
+                  className="h-4.5 w-4.5 object-contain"
+                />
               </span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-100">
+                Nông nghiệp chất lượng cao
+              </span>
+              <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
             </div>
 
             {/* Main heading */}

@@ -419,7 +419,7 @@ export default function ThuocBVTVPage() {
                       setActiveCategory(catName);
                       setPage(1);
                     }}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition text-left ${activeCategory === catName ? "bg-emerald-50 text-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+                    className={`relative flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition text-left ${activeCategory === catName ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
                   >
                     <span>{catName}</span>
                     <span className={`px-2 py-0.5 rounded text-[10px] ${activeCategory === catName ? "bg-[#007e42] text-white" : "bg-gray-100 text-gray-400"}`}>

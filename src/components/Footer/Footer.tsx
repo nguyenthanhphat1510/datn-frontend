@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { SHOP_LOCATION } from "@/lib/shop-location";
 
 /* ─────────────────────────────────────────
    Icons (inline SVG — tông trắng trên nền xanh)
@@ -148,7 +149,7 @@ export default function Footer() {
                 <span className="mt-0.5 shrink-0 text-emerald-100">
                   <IPin />
                 </span>
-                <span>Đồng bằng sông Cửu Long, Việt Nam</span>
+                <span>{SHOP_LOCATION.address}</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <span className="shrink-0 text-emerald-100">

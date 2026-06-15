@@ -113,12 +113,26 @@ export default function OrderSuccess() {
               ))}
             </div>
 
-            {/* Tổng */}
-            <div className="flex items-center justify-between pt-4">
-              <span className="text-sm font-bold text-gray-700">Tổng cộng</span>
-              <span className="text-lg font-extrabold text-[#007e42]">
-                {fmt(order.total)}
-              </span>
+            {/* Tạm tính + phí ship + tổng */}
+            <div className="flex flex-col gap-2 pt-4">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>Tạm tính</span>
+                <span>{fmt(order.total - order.shippingFee)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>Phí vận chuyển</span>
+                <span>
+                  {order.shippingFee === 0 ? "Miễn phí" : fmt(order.shippingFee)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+                <span className="text-sm font-bold text-gray-700">
+                  Tổng cộng
+                </span>
+                <span className="text-lg font-extrabold text-[#007e42]">
+                  {fmt(order.total)}
+                </span>
+              </div>
             </div>
           </div>
         )}
