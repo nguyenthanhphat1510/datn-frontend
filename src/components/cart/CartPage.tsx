@@ -218,7 +218,7 @@ function QuantityStepper({
   onDecrease: () => void;
 }) {
   return (
-    <div className="flex items-center gap-0 rounded-lg border border-gray-200 overflow-hidden">
+    <div className="flex items-center gap-0 rounded-lg border border-gray-300 overflow-hidden">
       <button
         onClick={onDecrease}
         disabled={disabled || quantity <= 1}
@@ -227,7 +227,7 @@ function QuantityStepper({
       >
         −
       </button>
-      <span className="flex h-8 w-10 items-center justify-center border-x border-gray-200 text-sm font-semibold text-gray-800">
+      <span className="flex h-8 w-10 items-center justify-center border-x border-gray-300 text-sm font-semibold text-gray-800">
         {quantity}
       </span>
       <button
@@ -283,7 +283,7 @@ function CartItemRow({
       </button>
 
       {/* Product Image */}
-      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-white">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-300 bg-white">
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -450,7 +450,7 @@ function OrderSummary({
       )}
 
       {/* Price rows */}
-      <div className="flex flex-col gap-2.5 border-t border-gray-100 pt-3">
+      <div className="flex flex-col gap-2.5 border-t border-gray-300 pt-3">
         <div className="flex justify-between text-sm text-gray-600">
           <span>Tổng số lượng</span>
           <span className="font-medium text-gray-800">{checkedCount} sản phẩm</span>
@@ -472,7 +472,7 @@ function OrderSummary({
       </div>
 
       {/* Coupon */}
-      <div className="border-t border-gray-100 pt-3">
+      <div className="border-t border-gray-300 pt-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Mã giảm giá
         </p>
@@ -480,7 +480,7 @@ function OrderSummary({
       </div>
 
       {/* Total */}
-      <div className="flex items-end justify-between rounded-xl bg-gray-50 px-4 py-3">
+      <div className="flex items-end justify-between rounded-xl bg-gray-200 px-4 py-3">
         <span className="text-sm font-bold text-gray-700">Thành tiền:</span>
         <div className="text-right leading-tight">
           <span className="text-2xl font-extrabold text-[#007e42]">

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fmt } from "@/lib/format";
 import { getOrders, type Order } from "@/services/orders";
+import { getReviewedProductIds } from "@/services/reviews";
+import ReviewForm from "@/components/product-detail/ReviewForm";
 
 /* Map trạng thái đơn → nhãn tiếng Việt + màu badge (khớp OrderStatus backend). */
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -233,6 +235,20 @@ function OrderDetailModal({
   index: number;
   onClose: () => void;
 }) {
+  const delivered = order.status === "delivered";
+
+  // productId đã đánh giá trong đơn này → ẩn nút "Đánh giá"
+  const [reviewedIds, setReviewedIds] = useState<string[]>([]);
+  // productId đang mở form đánh giá (null = không mở)
+  const [reviewing, setReviewing] = useState<string | null>(null);
+
+  const loadReviewed = useCallback(() => {
+    if (!delivered) return;
+    getReviewedProductIds(order._id)
+      .then(setReviewedIds)
+      .catch(() => setReviewedIds([]));
+  }, [delivered, order._id]);
+
   /* Đóng modal khi nhấn ESC. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -241,6 +257,11 @@ function OrderDetailModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  /* Tải danh sách sản phẩm đã đánh giá khi mở đơn đã giao. */
+  useEffect(() => {
+    loadReviewed();
+  }, [loadReviewed]);
 
   return (
     <div
@@ -355,34 +376,71 @@ function OrderDetailModal({
               Sản Phẩm Đã Đặt
             </h3>
             <div className="flex flex-col gap-3">
-              {order.items.map((item) => (
-                <div
-                  key={item.productId}
-                  className="flex items-center gap-4 rounded-xl border-2 border-gray-300 p-4"
-                >
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
-                    {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="h-full w-full object-contain p-1"
-                      />
-                    ) : null}
+              {order.items.map((item) => {
+                const reviewed = reviewedIds.includes(item.productId);
+                const isOpen = reviewing === item.productId;
+                return (
+                  <div
+                    key={item.productId}
+                    className="rounded-xl border-2 border-gray-300 p-4"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        {item.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-full w-full object-contain p-1"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-base font-bold text-gray-800">
+                          {item.name}
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-gray-600">
+                          {fmt(item.price)} x {item.quantity}
+                        </p>
+                        {/* Đơn đã giao → đánh giá; đã đánh giá thì hiện trạng thái */}
+                        {delivered &&
+                          (reviewed ? (
+                            <span className="mt-2 inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
+                              ✓ Đã đánh giá
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReviewing(isOpen ? null : item.productId)
+                              }
+                              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#007e42] px-3 py-1 text-xs font-semibold text-[#007e42] transition hover:bg-[#007e42] hover:text-white"
+                            >
+                              ★ {isOpen ? "Đóng" : "Đánh giá"}
+                            </button>
+                          ))}
+                      </div>
+                      <span className="shrink-0 text-base font-bold text-[#005f32]">
+                        {fmt(item.subtotal)}
+                      </span>
+                    </div>
+
+                    {/* Form đánh giá inline cho item này */}
+                    {delivered && isOpen && !reviewed && (
+                      <div className="mt-4 rounded-xl border border-gray-300 bg-gray-50 p-4">
+                        <ReviewForm
+                          orderId={order._id}
+                          productId={item.productId}
+                          onDone={() => {
+                            setReviewing(null);
+                            loadReviewed();
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-base font-bold text-gray-800">
-                      {item.name}
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-gray-600">
-                      {fmt(item.price)} x {item.quantity}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-base font-bold text-[#005f32]">
-                    {fmt(item.subtotal)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

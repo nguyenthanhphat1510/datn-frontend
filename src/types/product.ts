@@ -20,9 +20,23 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   originalPrice?: number;
-  rating?: number;
-  ratingCount?: number;
+  // Điểm đánh giá thật từ backend (denormalize từ collection reviews)
+  averageRating?: number;
+  reviewCount?: number;
   badge?: ProductBadge;
+}
+
+export interface Review {
+  _id: string;
+  productId: string;
+  orderId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  images: ProductImage[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Category {

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Product } from "@/types/product";
+import type { Product, Review } from "@/types/product";
 import { fmt } from "@/lib/format";
 import { Stars } from "@/components/Stars";
 import { BADGE_STYLES, ICartPush, IHome, ILeaf, ITruck, IShieldCheck, IRefresh } from "@/components/icons";
 import { ProductCard } from "@/components/home/ProductItem";
-import { fetchProducts } from "@/services/products";
+import { fetchProducts, getProduct } from "@/services/products";
+import { getProductReviews } from "@/services/reviews";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
@@ -64,6 +65,33 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [cartError, setCartError] = useState("");
   const [related, setRelated] = useState<Product[]>([]);
 
+  // Đánh giá: danh sách review + rating cập nhật real-time sau khi gửi
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [rating, setRating] = useState({
+    average: product.averageRating ?? 0,
+    count: product.reviewCount ?? 0,
+  });
+
+  // Tải danh sách review + làm mới rating từ backend
+  const loadReviews = useCallback(() => {
+    getProductReviews(product._id, { limit: 50 })
+      .then((res) => setReviews(res.data))
+      .catch(() => setReviews([]));
+    // Lấy lại product để cập nhật averageRating/reviewCount sau khi recalc
+    getProduct(product._id)
+      .then((p) =>
+        setRating({
+          average: p.averageRating ?? 0,
+          count: p.reviewCount ?? 0,
+        }),
+      )
+      .catch(() => {});
+  }, [product._id]);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
+
   const images = product.images ?? [];
   // Demo trình bày: luôn hiện tối thiểu 4 ô thumbnail (ô đầu là ảnh thật, còn lại placeholder)
   const thumbCount = Math.max(images.length, 4);
@@ -73,9 +101,9 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       ? Math.round((1 - product.price / product.originalPrice) * 100)
       : 0;
 
-  // Đánh giá + đã bán (dùng data thật nếu có, không thì fake để demo trình bày)
-  const ratingValue = product.rating ?? 4.8;
-  const ratingCount = product.ratingCount ?? 124;
+  // Đánh giá thật từ backend (0 nếu chưa có review nào)
+  const ratingValue = rating.average;
+  const ratingCount = rating.count;
   const soldCount = 1280;
 
   useEffect(() => {
@@ -218,7 +246,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               </span>
             </div>
 
-            <hr className="border-gray-100" />
+            <hr className="border-gray-300" />
 
             {/* Giá */}
             <div className="flex flex-wrap items-baseline gap-3">
@@ -227,7 +255,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 <span className="text-lg text-gray-400 line-through">{fmt(product.originalPrice)}</span>
               )}
               {discountPct > 0 && (
-                <span className="rounded-lg bg-[#007e42]/10 px-2.5 py-1 text-sm font-bold text-[#007e42]">
+                <span className="rounded-lg bg-[#007e42]/20 px-2.5 py-1 text-sm font-bold text-[#007e42]">
                   Tiết kiệm {discountPct}%
                 </span>
               )}
@@ -247,12 +275,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               )}
             </p>
 
-            <hr className="border-gray-100" />
+            <hr className="border-gray-300" />
 
             {/* Nút hành động: số lượng + thêm vào giỏ cùng hàng */}
             <div className="flex gap-3">
               {/* Quantity */}
-              <div className="flex items-center overflow-hidden rounded-xl border border-gray-200">
+              <div className="flex items-center overflow-hidden rounded-xl border border-gray-300">
                 <button
                   onClick={() => changeQty(-1)}
                   disabled={outOfStock || qty <= 1}
@@ -267,7 +295,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   onChange={(e) => setQty(Number(e.target.value.replace(/\D/g, "")) || 1)}
                   onBlur={(e) => commitQty(e.target.value)}
                   disabled={outOfStock}
-                  className="h-12 w-12 border-x border-gray-200 bg-white text-center text-sm font-semibold text-gray-800 outline-none disabled:opacity-40"
+                  className="h-12 w-12 border-x border-gray-300 bg-white text-center text-sm font-semibold text-gray-800 outline-none disabled:opacity-40"
                 />
                 <button
                   onClick={() => changeQty(1)}
@@ -304,7 +332,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               <p className="text-sm font-medium text-red-500">{cartError}</p>
             )}
 
-            <hr className="border-gray-100" />
+            <hr className="border-gray-300" />
 
             {/* Dải cam kết */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -313,7 +341,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 { icon: <IShieldCheck />, title: "Hàng chính hãng", desc: "Cam kết 100%" },
                 { icon: <IRefresh />, title: "Đổi trả dễ dàng", desc: "Trong vòng 7 ngày" },
               ].map((c) => (
-                <div key={c.title} className="flex items-center gap-2.5 rounded-xl bg-emerald-50/60 px-3 py-2.5">
+                <div key={c.title} className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-100 px-3 py-2.5">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#007e42] shadow-sm">
                     {c.icon}
                   </span>
@@ -329,22 +357,19 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
         {/* ── Mô tả / Hướng dẫn / Thông số (dạng tab) ── */}
         <div className="mt-10 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-          {/* Thanh tab */}
-          <div className="flex flex-wrap border-b border-gray-100">
+          {/* Thanh tab — mỗi tab là 1 button bo góc */}
+          <div className="flex flex-wrap gap-2 border-b border-gray-100 p-3">
             {TABS.map((t) => (
               <button
                 key={t.value}
                 onClick={() => setActiveTab(t.value)}
-                className={`relative px-5 py-3.5 text-sm font-semibold transition ${
+                className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition ${
                   activeTab === t.value
-                    ? "text-[#007e42]"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-[#007e42] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {t.label}
-                {activeTab === t.value && (
-                  <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-[#007e42]" />
-                )}
               </button>
             ))}
           </div>
@@ -359,7 +384,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 </p>
                 <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {FAKE_HIGHLIGHTS.map((h) => (
-                    <div key={h} className="flex items-start gap-2 rounded-xl bg-emerald-50/60 px-3 py-2.5">
+                    <div key={h} className="flex items-start gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2.5">
                       <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#007e42] text-[11px] font-bold text-white">✓</span>
                       <span className="text-xs font-medium text-gray-700">{h}</span>
                     </div>
@@ -388,7 +413,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   </ol>
                 )}
 
-                <div className="mt-5 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
+                <div className="mt-5 rounded-xl border border-amber-200 bg-amber-100 p-4">
                   <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-700">⚠ Lưu ý an toàn</p>
                   <ul className="flex flex-col gap-1.5">
                     {FAKE_NOTES.map((n) => (
@@ -404,10 +429,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
             {/* Thông số */}
             {activeTab === "thong-so" && (
-              <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {FAKE_SPECS.map((s) => (
-                  <div key={s.label} className="flex items-center justify-between gap-3 border-b border-gray-100 py-2.5">
-                    <dt className="text-xs font-medium text-gray-400">{s.label}</dt>
+                  <div key={s.label} className="flex items-center justify-between gap-3 rounded-xl border border-gray-300 bg-gray-100 px-3 py-2.5">
+                    <dt className="text-xs font-medium text-gray-500">{s.label}</dt>
                     <dd className="text-right text-xs font-semibold text-gray-700">{s.value}</dd>
                   </div>
                 ))}
@@ -416,15 +441,80 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </div>
         </div>
 
+        {/* ── Đánh giá sản phẩm ── */}
+        <div id="danh-gia" className="mt-10 scroll-mt-24 overflow-hidden rounded-2xl border border-[#007e42]/15 bg-white p-6 shadow-sm">
+          <h2 className="-mx-6 -mt-6 mb-6 bg-[#007e42] px-6 py-3 text-lg font-extrabold uppercase text-white sm:text-xl">
+            Đánh giá sản phẩm
+          </h2>
+
+          {/* Tổng quan điểm */}
+          <div className="mb-6 flex items-center gap-4 rounded-xl border border-gray-300 bg-white p-4">
+            <div className="text-center">
+              <p className="text-3xl font-extrabold text-amber-500">
+                {ratingValue.toFixed(1)}
+              </p>
+              <Stars rating={ratingValue} />
+            </div>
+            <span className="h-10 w-px bg-gray-200" />
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-800">{ratingCount}</span>{" "}
+              lượt đánh giá
+            </p>
+          </div>
+
+          {/* Lưu ý: việc đánh giá thực hiện ở trang "Đơn hàng của tôi" (theo từng đơn đã giao). */}
+
+          {/* Danh sách đánh giá */}
+          {reviews.length === 0 ? (
+            <div className="rounded-xl border border-gray-300 bg-gray-50 p-4 text-sm text-gray-400">
+              Chưa có đánh giá nào. Hãy là người đầu tiên!
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {reviews.map((r) => (
+                <div
+                  key={r._id}
+                  className="rounded-xl border border-gray-300 bg-gray-50 p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-800">
+                      {r.userName}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(r.createdAt).toLocaleDateString("vi-VN")}
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <Stars rating={r.rating} />
+                  </div>
+                  {r.comment && (
+                    <p className="mt-2 text-sm text-gray-600">{r.comment}</p>
+                  )}
+                  {r.images && r.images.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {r.images.map((img) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={img.publicId}
+                          src={img.url}
+                          alt="ảnh đánh giá"
+                          className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* ── Sản phẩm liên quan ── */}
         {related.length > 0 && (
-          <div className="mt-14">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="h-6 w-1 rounded-full bg-[#007e42]" />
-              <h2 className="text-lg font-extrabold uppercase text-gray-900 sm:text-xl">
-                Sản phẩm liên quan
-              </h2>
-            </div>
+          <div className="mt-10 overflow-hidden rounded-2xl border border-[#007e42]/15 bg-[#e5e7eb] p-6 shadow-sm">
+            <h2 className="-mx-6 -mt-6 mb-6 bg-[#007e42] px-6 py-3 text-lg font-extrabold uppercase text-white sm:text-xl">
+              Sản phẩm liên quan
+            </h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p._id} product={p} />

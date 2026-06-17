@@ -298,7 +298,7 @@ function SidebarContent({
                 </Link>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <p className="text-xs font-bold text-[#007e42]">{fmt(p.price)}</p>
-                  {p.rating ? <Stars rating={p.rating} /> : null}
+                  {p.averageRating ? <Stars rating={p.averageRating} /> : null}
                 </div>
               </div>
             </li>

@@ -78,10 +78,10 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </span>
 
-        {product.rating ? (
+        {product.averageRating ? (
           <div className="flex items-center gap-1.5">
-            <Stars rating={product.rating} />
-            <span className="text-xs text-gray-400">({product.ratingCount ?? 0} đánh giá)</span>
+            <Stars rating={product.averageRating} />
+            <span className="text-xs text-gray-400">({product.reviewCount ?? 0} đánh giá)</span>
           </div>
         ) : null}
 
@@ -120,10 +120,10 @@ export function ProductRow({ product }: { product: Product }) {
         <span className="text-sm font-bold uppercase text-gray-800 group-hover:text-[#007e42] line-clamp-1">
           {product.name}
         </span>
-        {product.rating ? (
+        {product.averageRating ? (
           <div className="flex items-center gap-2">
-            <Stars rating={product.rating} />
-            <span className="text-xs text-gray-400">({product.ratingCount ?? 0})</span>
+            <Stars rating={product.averageRating} />
+            <span className="text-xs text-gray-400">({product.reviewCount ?? 0})</span>
           </div>
         ) : null}
         <div className="flex items-baseline gap-2">

@@ -97,3 +97,27 @@ export function apiDelete<T>(
 ): Promise<T> {
   return mutate<T>("DELETE", path, undefined, options);
 }
+
+/**
+ * Upload file (multipart/form-data). KHÔNG set Content-Type thủ công —
+ * trình duyệt tự thêm boundary. Dùng cho upload ảnh sản phẩm/đánh giá.
+ */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  options: RequestOptions = {},
+): Promise<T> {
+  const url = `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...(options.auth ? authHeaders() : {}),
+    },
+    body: formData,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(await parseError(res, `POST ${path} thất bại`));
+  }
+  return (await res.json()) as T;
+}
