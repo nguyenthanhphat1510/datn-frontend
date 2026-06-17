@@ -663,13 +663,13 @@ export default function ThuocBVTVPage() {
 
             {/* Grid */}
             {viewMode === "grid" && filteredProducts.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedProducts.map((p) => {
                   const tox = getToxicityInfo(p.toxicity);
                   return (
                     <div
                       key={p.id}
-                      className="bg-white/40 rounded-2xl border border-transparent overflow-hidden hover:bg-white hover:shadow-lg transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative"
+                      className="bg-white/40 rounded-xl border border-transparent overflow-hidden hover:bg-white hover:shadow-lg transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative"
                     >
                       {p.badge && (
                         <span className="absolute top-3 left-3 z-10 bg-[#007e42] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-lg shadow-sm">
@@ -681,12 +681,12 @@ export default function ThuocBVTVPage() {
                         Nhóm {p.toxicity}
                       </span>
 
-                      <div className="h-44 bg-gradient-to-br from-[#ebf5ef] to-[#cce8d9] flex items-center justify-center p-6 relative overflow-hidden">
+                      <div className="h-64 bg-gradient-to-br from-[#ebf5ef] to-[#cce8d9] flex items-center justify-center p-6 relative overflow-hidden">
                         <Image
                           src="/thuoc.png"
                           alt={p.name}
-                          width={120}
-                          height={120}
+                          width={160}
+                          height={160}
                           className="object-contain filter drop-shadow-md group-hover:scale-110 transition duration-300"
                         />
 
@@ -717,7 +717,7 @@ export default function ThuocBVTVPage() {
 
                           <h4
                             onClick={() => setSelectedProduct(p)}
-                            className="font-extrabold text-sm text-gray-800 line-clamp-2 hover:text-[#007e42] cursor-pointer transition uppercase"
+                            className="font-extrabold text-sm text-gray-800 line-clamp-2 min-h-[2.5rem] hover:text-[#007e42] cursor-pointer transition uppercase"
                           >
                             {p.name}
                           </h4>
@@ -749,7 +749,7 @@ export default function ThuocBVTVPage() {
 
                         <div className="pt-2 border-t border-gray-50 flex items-center justify-between gap-1">
                           <div>
-                            <p className="text-[#007e42] font-black text-sm">{p.price.toLocaleString("vi-VN")} đ</p>
+                            <p className="text-[#007e42] font-black text-base">{p.price.toLocaleString("vi-VN")} đ</p>
                             {p.originalPrice && (
                               <p className="text-[10px] text-gray-400 line-through">
                                 {p.originalPrice.toLocaleString("vi-VN")} đ

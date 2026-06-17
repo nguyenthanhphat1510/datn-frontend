@@ -5,19 +5,19 @@ import Link from "next/link";
 
 const products = [
   {
-    img: "/thuoc.png",
+    img: "/thuoc_tru_sau1.png",
     label: "Thuốc trừ sâu",
     sub: "Diệt rầy, sâu cuốn lá",
     accent: "#10b981",
   },
   {
-    img: "/thuoc.png",
+    img: "/thuoc_tru_benh1.png",
     label: "Thuốc trừ bệnh",
     sub: "Đặc trị đạo ôn, khô vằn",
     accent: "#059669",
   },
   {
-    img: "/thuoc.png",
+    img: "/thuoc_tru_co1.png",
     label: "Thuốc trừ cỏ",
     sub: "Sạch cỏ, an toàn lúa",
     accent: "#d97706",
@@ -27,48 +27,56 @@ const products = [
 export default function ThuocBVTVHero() {
   return (
     <section
-      className="relative w-full overflow-hidden py-12 sm:py-16 lg:py-20"
+      className="relative w-full overflow-hidden text-white py-10 sm:py-14 lg:py-16"
       style={{
         background:
-          "linear-gradient(135deg, #ffffff 0%, #fafefc 30%, #f0fcf6 65%, #e1faee 100%)",
+          "linear-gradient(135deg, #011f0e 0%, #013d1c 25%, #025c2a 50%, #016b30 70%, #0a8040 85%, #12924a 100%)",
       }}
     >
-      {/* === Light Ambient Green Glows === */}
+      {/* === Multi-layer ambient glows === */}
       <div
-        className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[100px] pointer-events-none z-0 -mr-24 -mt-24 opacity-50"
-        style={{ background: "radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)" }}
+        className="absolute top-0 right-0 w-[520px] h-[520px] rounded-full blur-[120px] pointer-events-none z-0 -mr-24 -mt-24"
+        style={{ background: "radial-gradient(circle, rgba(52,211,153,0.18) 0%, transparent 70%)" }}
       />
       <div
-        className="absolute bottom-0 left-0 w-[450px] h-[450px] rounded-full blur-[90px] pointer-events-none z-0 -ml-20 -mb-20 opacity-40"
-        style={{ background: "radial-gradient(circle, rgba(132,204,22,0.06) 0%, transparent 70%)" }}
+        className="absolute bottom-0 left-0 w-[480px] h-[480px] rounded-full blur-[100px] pointer-events-none z-0 -ml-24 -mb-24"
+        style={{ background: "radial-gradient(circle, rgba(16,185,129,0.14) 0%, transparent 70%)" }}
       />
       <div
-        className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full blur-[100px] pointer-events-none z-0 -translate-y-1/2 opacity-30"
-        style={{ background: "radial-gradient(circle, rgba(56,189,248,0.04) 0%, transparent 70%)" }}
+        className="absolute top-1/2 left-1/2 w-[300px] h-[300px] rounded-full blur-[90px] pointer-events-none z-0 -translate-x-1/2 -translate-y-1/2"
+        style={{ background: "radial-gradient(circle, rgba(110,231,183,0.08) 0%, transparent 70%)" }}
       />
-
-      {/* Subtle grid pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(16,185,129,0.03)_1px,transparent_1px)] [background-size:24px_24px] opacity-75 z-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:30px_30px] opacity-40 z-0 pointer-events-none" />
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, #fff 0px, #fff 1px, transparent 1px, transparent 24px)",
+        }}
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 z-10">
         <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
 
           {/* ── Bên trái: text ── */}
-          <div className="flex-shrink-0 lg:w-[480px] xl:w-[540px] space-y-6 text-left">
+          <div className="flex-shrink-0 lg:w-115 xl:w-130 space-y-5 text-left">
 
             {/* Tag */}
             <div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/10 shadow-[0_2px_10px_rgba(4,120,87,0.03)]"
-              style={{ background: "rgba(16,185,129,0.04)" }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-300/40 shadow-lg shadow-emerald-900/30 backdrop-blur-sm"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(52,211,153,0.18) 0%, rgba(16,185,129,0.06) 100%)",
+              }}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-100">
                 🛡️ Bảo vệ cây trồng toàn diện
               </span>
             </div>
 
             {/* Tiêu đề chính */}
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.6rem] xl:text-5xl font-extrabold leading-[1.15] text-slate-800">
+            <h1 className="text-3xl sm:text-4xl lg:text-[2.6rem] xl:text-5xl font-extrabold leading-[1.15] text-white">
               Thuốc Bảo Vệ
               <br />
               <span className="relative inline-block my-1">
@@ -76,7 +84,7 @@ export default function ThuocBVTVHero() {
                   className="bg-clip-text text-transparent font-black"
                   style={{
                     backgroundImage:
-                      "linear-gradient(90deg, #059669 0%, #10b981 50%, #059669 100%)",
+                      "linear-gradient(90deg, #6ee7b7 0%, #34d399 20%, #a3e635 55%, #fde68a 80%, #6ee7b7 100%)",
                     backgroundSize: "200% auto",
                     animation: "shimmerText 7s linear infinite",
                   }}
@@ -106,7 +114,7 @@ export default function ThuocBVTVHero() {
                 </svg>
               </span>
               <br />
-              an toàn &amp; <span className="text-[#15803d] font-black drop-shadow-[0_1px_5px_rgba(21,128,61,0.15)]">hiệu quả</span>
+              an toàn &amp; <span className="text-[#fde68a] font-black drop-shadow-[0_1px_8px_rgba(253,230,138,0.3)]">hiệu quả</span>
             </h1>
 
             {/* Divider */}
@@ -116,7 +124,7 @@ export default function ThuocBVTVHero() {
             />
 
             {/* Mô tả */}
-            <p className="text-sm sm:text-[15px] leading-relaxed max-w-md text-slate-600">
+            <p className="text-sm sm:text-[15px] leading-relaxed max-w-md" style={{ color: "rgba(209,250,229,0.85)" }}>
               Giải pháp đặc trị sâu rầy, đạo ôn, khô vằn, cỏ dại cho cây lúa. Cam kết hàng chính hãng, hướng dẫn pha chế chuẩn từ kỹ sư nông học, đồng hành cùng bà con suốt mùa vụ.
             </p>
 
@@ -131,31 +139,31 @@ export default function ThuocBVTVHero() {
               </Link>
               <Link
                 href="#guide"
-                className="inline-flex h-12 items-center gap-2 rounded-full border border-emerald-500/20 bg-white/80 backdrop-blur-md px-6 text-sm font-bold text-emerald-800 shadow-[0_2px_10px_rgba(4,120,87,0.02)] transition duration-300 hover:bg-emerald-50/50 hover:border-emerald-500/40 hover:scale-[1.03]"
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-emerald-300/30 bg-white/10 backdrop-blur-md px-6 text-sm font-bold text-emerald-50 shadow-[0_2px_10px_rgba(0,0,0,0.15)] transition duration-300 hover:bg-white/20 hover:border-emerald-300/50 hover:scale-[1.03]"
               >
                 Cẩm nang sâu bệnh
               </Link>
             </div>
 
             {/* Số thống kê */}
-            <div className="flex gap-6 pt-5 border-t border-emerald-500/10">
+            <div className="flex gap-6 pt-5 border-t border-white/10">
               <div className="flex flex-col">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-700">100+</span>
-                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-200">100+</span>
+                <span className="text-[10px] sm:text-[11px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
                   Hoạt chất đặc trị
                 </span>
               </div>
-              <div className="w-px self-stretch bg-emerald-500/15" />
+              <div className="w-px self-stretch bg-white/12" />
               <div className="flex flex-col">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-600">7+</span>
-                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                <span className="text-2xl sm:text-3xl font-black text-lime-200">7+</span>
+                <span className="text-[10px] sm:text-[11px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
                   Thương hiệu lớn
                 </span>
               </div>
-              <div className="w-px self-stretch bg-emerald-500/15" />
+              <div className="w-px self-stretch bg-white/12" />
               <div className="flex flex-col">
-                <span className="text-2xl sm:text-3xl font-black text-lime-600">98%</span>
-                <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                <span className="text-2xl sm:text-3xl font-black" style={{ color: "#fde68a" }}>98%</span>
+                <span className="text-[10px] sm:text-[11px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
                   Hiệu lực phòng trị
                 </span>
               </div>
@@ -191,30 +199,35 @@ export default function ThuocBVTVHero() {
                     className={`group/card absolute w-36 transition-all duration-500 ease-out hover:!z-30 sm:w-40 ${fan}`}
                   >
                     <div
-                      className="overflow-hidden rounded-2xl border border-emerald-500/10 bg-white shadow-[0_12px_30px_rgba(4,120,87,0.12)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_45px_rgba(4,120,87,0.2)]"
+                      className="relative cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10 backdrop-blur-sm shadow-[0_8px_28px_rgba(0,0,0,0.32)] transition-all duration-500 hover:-translate-y-2 hover:ring-emerald-300/50 hover:shadow-[0_18px_42px_rgba(0,0,0,0.45)]"
                       style={{
+                        background: "rgba(255,255,255,0.06)",
                         animation: "floatCard 6s ease-in-out infinite",
                         animationDelay: `${idx * 0.5}s`,
                       }}
                     >
                       {/* Ảnh sản phẩm */}
-                      <div className="relative flex aspect-[4/5] w-full items-center justify-center bg-gradient-to-b from-emerald-50/40 to-transparent p-3">
+                      <div className="relative flex aspect-[4/5] w-full items-center justify-center p-2 bg-[linear-gradient(to_bottom,rgba(110,231,183,0.2)_0%,rgba(52,211,153,0.08)_45%,transparent_100%)]">
                         <Image
                           src={product.img}
                           alt={product.label}
                           fill
                           sizes="(max-width: 640px) 50vw, 200px"
                           priority={idx === 1}
-                          className="object-contain p-2 drop-shadow-[0_6px_10px_rgba(4,120,87,0.08)] transition-transform duration-500 group-hover/card:scale-[1.07]"
+                          className="object-contain p-1 drop-shadow-[0_6px_12px_rgba(0,0,0,0.35)] transition-transform duration-500 group-hover/card:scale-[1.06]"
                         />
                       </div>
 
                       {/* Nhãn */}
-                      <div className="border-t border-emerald-500/5 bg-white p-3 text-center">
-                        <p className="text-xs font-black tracking-wide text-slate-800">
+                      <div className="flex flex-col items-center justify-center gap-1 border-t border-white/10 p-2.5 text-center">
+                        <p className="text-xs font-extrabold tracking-wide text-white">
                           {product.label}
                         </p>
-                        <p className="mt-0.5 text-[10px] font-bold" style={{ color: product.accent }}>
+                        <span
+                          className="h-0.5 w-6 rounded-full"
+                          style={{ background: product.accent }}
+                        />
+                        <p className="text-[10px] font-semibold text-emerald-200/80">
                           {product.sub}
                         </p>
                       </div>

@@ -9,11 +9,11 @@ import { getOrders, type Order } from "@/services/orders";
 
 /* Map trạng thái đơn → nhãn tiếng Việt + màu badge (khớp OrderStatus backend). */
 const STATUS: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Chờ xác nhận", cls: "bg-amber-100 text-amber-700" },
-  confirmed: { label: "Đang xử lý", cls: "bg-blue-100 text-blue-700" },
-  shipping: { label: "Đang giao", cls: "bg-indigo-100 text-indigo-700" },
-  delivered: { label: "Hoàn thành", cls: "bg-emerald-100 text-[#007e42]" },
-  cancelled: { label: "Đã hủy", cls: "bg-red-100 text-red-600" },
+  pending: { label: "Chờ xác nhận", cls: "bg-white text-amber-700" },
+  confirmed: { label: "Đang xử lý", cls: "bg-white text-blue-700" },
+  shipping: { label: "Đang giao", cls: "bg-white text-indigo-700" },
+  delivered: { label: "Hoàn thành", cls: "bg-white text-[#007e42]" },
+  cancelled: { label: "Đã hủy", cls: "bg-white text-red-600" },
 };
 
 /* Các bước tiến trình đơn (thanh stepper). */
@@ -82,7 +82,7 @@ function OrderStepper({ status }: { status: string }) {
                   className={`mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
                     done
                       ? "bg-[#007e42] text-white"
-                      : "bg-gray-100 text-gray-400"
+                      : "bg-gray-200 text-gray-700"
                   }`}
                 >
                   {step}
@@ -99,7 +99,7 @@ function OrderStepper({ status }: { status: string }) {
             </div>
             <span
               className={`mt-2 text-center text-[11px] font-medium ${
-                done ? "text-[#007e42]" : "text-gray-400"
+                done ? "text-[#007e42]" : "text-gray-700"
               }`}
             >
               {label}
@@ -127,11 +127,11 @@ function OrderCard({
   const cancelled = order.status === "cancelled";
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-md shadow-gray-200/60">
+    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-md shadow-gray-200/60">
       {/* Header: icon + mã đơn + ngày + trạng thái + nút xem */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="-mx-5 -mt-5 flex flex-wrap items-center justify-between gap-3 bg-[#007e42] px-5 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#007e42]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -148,10 +148,10 @@ function OrderCard({
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-base font-extrabold text-gray-800">
+            <p className="text-base font-extrabold text-white">
               Đơn Hàng {index}
             </p>
-            <p className="mt-0.5 text-xs text-gray-400">{createdAt}</p>
+            <p className="mt-0.5 text-xs text-white/70">{createdAt}</p>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ function OrderCard({
             type="button"
             onClick={onView}
             aria-label="Xem chi tiết đơn hàng"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-[#007e42] hover:text-[#007e42]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/40 text-white transition hover:bg-white/15"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -252,15 +252,15 @@ function OrderDetailModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header modal */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-gray-800">
+        <div className="flex items-center justify-between bg-[#007e42] px-6 py-4">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.8}
               stroke="currentColor"
-              className="h-5 w-5 text-[#007e42]"
+              className="h-5 w-5 text-white"
             >
               <path
                 strokeLinecap="round"
@@ -268,13 +268,13 @@ function OrderDetailModal({
                 d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
               />
             </svg>
-            Chi Tiết Đơn Hàng <span className="text-[#007e42]">{index}</span>
+            Chi Tiết Đơn Hàng <span className="text-white/80">{index}</span>
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white transition hover:bg-white/15"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -296,8 +296,8 @@ function OrderDetailModal({
         <div className="space-y-6 px-6 py-5">
           {/* Hai cột: khách hàng + giao hàng */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#007e42]">
+            <div className="rounded-xl border border-gray-300 bg-gray-200 p-4">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#005f32]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -322,8 +322,8 @@ function OrderDetailModal({
               </p>
             </div>
 
-            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#007e42]">
+            <div className="rounded-xl border border-gray-300 bg-gray-200 p-4">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#005f32]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -338,7 +338,7 @@ function OrderDetailModal({
               </p>
               <p className="mt-3 text-sm text-gray-600">
                 <span className="font-semibold text-gray-700">Trạng thái:</span>{" "}
-                <span className="font-semibold text-[#007e42]">
+                <span className="font-semibold text-[#005f32]">
                   {(STATUS[order.status] ?? { label: order.status }).label}
                 </span>
               </p>
@@ -358,27 +358,27 @@ function OrderDetailModal({
               {order.items.map((item) => (
                 <div
                   key={item.productId}
-                  className="flex items-center gap-3 rounded-xl border-2 border-gray-200 p-3"
+                  className="flex items-center gap-4 rounded-xl border-2 border-gray-300 p-4"
                 >
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-emerald-50">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.imageUrl}
                         alt={item.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain p-1"
                       />
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-semibold text-gray-800">
+                    <p className="line-clamp-2 text-base font-bold text-gray-800">
                       {item.name}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-400">
+                    <p className="mt-1 text-sm font-medium text-gray-600">
                       {fmt(item.price)} x {item.quantity}
                     </p>
                   </div>
-                  <span className="shrink-0 text-sm font-bold text-[#007e42]">
+                  <span className="shrink-0 text-base font-bold text-[#005f32]">
                     {fmt(item.subtotal)}
                   </span>
                 </div>
@@ -388,17 +388,17 @@ function OrderDetailModal({
 
           {/* Ghi chú nếu có */}
           {order.note && (
-            <p className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <p className="rounded-xl bg-gray-100 px-4 py-3 text-sm text-gray-600">
               <span className="font-semibold">Ghi chú:</span> {order.note}
             </p>
           )}
 
           {/* Tổng thanh toán */}
-          <div className="flex items-center justify-between rounded-xl bg-amber-50 px-5 py-4">
+          <div className="flex items-center justify-between rounded-xl bg-amber-100 px-5 py-4">
             <span className="text-sm font-bold text-gray-700">
               Tổng thanh toán:
             </span>
-            <span className="text-xl font-extrabold text-[#007e42]">
+            <span className="text-xl font-extrabold text-[#005f32]">
               {fmt(order.total)}
             </span>
           </div>

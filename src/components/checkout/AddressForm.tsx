@@ -137,7 +137,7 @@ function Field({
         className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition ${
           error
             ? "border-red-300 bg-red-50"
-            : "border-gray-200 focus:border-[#007e42] focus:ring-1 focus:ring-[#007e42]/20"
+            : "border-gray-300 focus:border-[#007e42] focus:ring-1 focus:ring-[#007e42]/20"
         }`}
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
@@ -254,7 +254,7 @@ function AddressAutocomplete({
           className={`w-full rounded-lg border py-2 pl-9 pr-9 text-sm outline-none transition ${
             error
               ? "border-red-300 bg-red-50"
-              : "border-gray-200 focus:border-[#007e42] focus:ring-1 focus:ring-[#007e42]/20"
+              : "border-gray-300 focus:border-[#007e42] focus:ring-1 focus:ring-[#007e42]/20"
           }`}
         />
 

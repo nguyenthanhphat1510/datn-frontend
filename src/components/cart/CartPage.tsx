@@ -418,8 +418,10 @@ function OrderSummary({
   const toFreeShip = FREE_SHIP_THRESHOLD - subtotal;
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-[#007e42]/15 bg-white p-5 shadow-lg">
-      <h2 className="text-lg font-bold text-gray-800">Tổng Đơn Hàng</h2>
+    <div className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-[#007e42]/15 bg-white p-5 shadow-lg">
+      <h2 className="-mx-5 -mt-5 mb-0 bg-[#007e42] px-5 py-3 text-lg font-bold text-white">
+        Tổng Đơn Hàng
+      </h2>
 
       {/* Free ship progress */}
       {!freeShip && subtotal > 0 && (
@@ -736,7 +738,7 @@ export default function CartPage() {
             {/* ── Left: items ── */}
             <div className="flex min-w-0 flex-1 flex-col">
               {/* Toolbar — header cột, dính liền lên đầu danh sách */}
-              <div className="flex items-center gap-3 rounded-t-xl border border-b-0 border-gray-300 bg-[#dadde2] px-4 py-2.5">
+              <div className="flex items-center gap-3 rounded-t-xl border border-b-0 border-[#007e42] bg-[#007e42] px-4 py-2.5">
                 {/* Select all */}
                 <button
                   onClick={toggleAll}
@@ -750,7 +752,7 @@ export default function CartPage() {
                 >
                   {allChecked && <ICheck />}
                 </button>
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <span className="text-xs font-semibold uppercase tracking-wide text-white">
                   Sản phẩm ({items.length})
                 </span>
 
@@ -758,17 +760,17 @@ export default function CartPage() {
                   <button
                     onClick={removeChecked}
                     disabled={busy}
-                    className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 disabled:opacity-40"
+                    className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15 disabled:opacity-40"
                   >
                     <ITrash />
                     Xóa đã chọn ({checkedIds.size})
                   </button>
                 ) : (
                   <div className="ml-auto hidden items-center sm:flex">
-                    <span className="w-28 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <span className="w-28 text-center text-xs font-semibold uppercase tracking-wide text-white">
                       Số lượng
                     </span>
-                    <span className="w-28 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <span className="w-28 text-right text-xs font-semibold uppercase tracking-wide text-white">
                       Tạm tính
                     </span>
                     <span className="w-8" />

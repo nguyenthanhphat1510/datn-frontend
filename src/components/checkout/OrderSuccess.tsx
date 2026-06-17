@@ -74,7 +74,7 @@ export default function OrderSuccess() {
           <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             {/* Địa chỉ giao */}
             {addr && (
-              <div className="border-b border-gray-100 pb-4">
+              <div className="border-b border-gray-300 pb-4">
                 <h2 className="mb-1 text-sm font-bold text-gray-800">
                   Giao đến
                 </h2>
@@ -87,16 +87,16 @@ export default function OrderSuccess() {
             )}
 
             {/* Danh sách item */}
-            <div className="flex flex-col gap-3 border-b border-gray-100 py-4">
+            <div className="flex flex-col gap-3 border-b border-gray-300 py-4">
               {order.items.map((item) => (
                 <div key={item.productId} className="flex items-center gap-3">
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-emerald-50">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.imageUrl}
                         alt={item.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain p-1"
                       />
                     ) : null}
                     <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#007e42] px-1 text-[10px] font-bold text-white">
@@ -125,7 +125,7 @@ export default function OrderSuccess() {
                   {order.shippingFee === 0 ? "Miễn phí" : fmt(order.shippingFee)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+              <div className="flex items-center justify-between border-t border-gray-300 pt-2">
                 <span className="text-sm font-bold text-gray-700">
                   Tổng cộng
                 </span>

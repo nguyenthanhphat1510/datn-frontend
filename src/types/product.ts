@@ -10,6 +10,7 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
+  salePrice?: number | null; // giá khuyến mãi từ backend (null = không giảm)
   stock: number;
   categoryId: string;
   manufacturer?: string;

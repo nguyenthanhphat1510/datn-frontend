@@ -54,7 +54,7 @@ export function ProductCard({ product }: { product: Product }) {
           </span>
         )}
         {discountPct > 0 && (
-          <span className="rounded-md bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+          <span className="rounded-md bg-[#007e42] px-2 py-0.5 text-[10px] font-bold text-white shadow">
             -{discountPct}%
           </span>
         )}
@@ -132,7 +132,7 @@ export function ProductRow({ product }: { product: Product }) {
             <>
               <span className="text-xs text-gray-400 line-through">{fmt(product.originalPrice)}</span>
               {discountPct > 0 && (
-                <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">
+                <span className="rounded bg-[#007e42]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#007e42]">
                   -{discountPct}%
                 </span>
               )}

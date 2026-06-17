@@ -160,7 +160,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 </span>
               )}
               {discountPct > 0 && (
-                <span className="absolute right-3 top-3 z-10 rounded-lg bg-red-500 px-2.5 py-1 text-xs font-bold text-white shadow">
+                <span className="absolute right-3 top-3 z-10 rounded-lg bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow">
                   -{discountPct}%
                 </span>
               )}
@@ -227,7 +227,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 <span className="text-lg text-gray-400 line-through">{fmt(product.originalPrice)}</span>
               )}
               {discountPct > 0 && (
-                <span className="rounded-lg bg-red-50 px-2.5 py-1 text-sm font-bold text-red-500">
+                <span className="rounded-lg bg-[#007e42]/10 px-2.5 py-1 text-sm font-bold text-[#007e42]">
                   Tiết kiệm {discountPct}%
                 </span>
               )}

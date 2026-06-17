@@ -60,7 +60,19 @@ const supportLinks = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-[#005f32] bg-[#007e42] text-white">
+    <footer className="relative bg-[#007e42] text-white">
+      {/* Wave separator — lượn sóng ở mép trên, đồng bộ với hero */}
+      <div className="absolute left-0 top-0 w-full -translate-y-full leading-none pointer-events-none">
+        <svg
+          viewBox="0 0 1440 32"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          className="w-full h-6 sm:h-8 fill-[#007e42]"
+        >
+          <path d="M0,8 C320,0 640,0 960,16 C1120,24 1280,24 1440,8 L1440,32 L0,32 Z" />
+        </svg>
+      </div>
+
       <div className="mx-auto w-full max-w-7xl px-6 py-12 lg:px-10">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* ── Cột thương hiệu ── */}
