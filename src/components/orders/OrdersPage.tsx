@@ -18,6 +18,30 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "Đã hủy", cls: "bg-white text-red-600" },
 };
 
+/* Nhãn phương thức thanh toán (khớp PaymentMethod backend). */
+const PAY_METHOD: Record<string, string> = {
+  cod: "Thanh toán khi nhận hàng (COD)",
+  vnpay: "VNPAY",
+  momo: "Ví MoMo",
+};
+
+/* Trạng thái thanh toán → nhãn + màu badge (khớp PaymentStatus backend). */
+const PAY_STATUS: Record<string, { label: string; cls: string }> = {
+  unpaid: { label: "Chưa thanh toán", cls: "bg-amber-100 text-amber-700" },
+  paid: { label: "Đã thanh toán", cls: "bg-[#007e42]/10 text-[#007e42]" },
+  failed: { label: "Thanh toán lỗi", cls: "bg-red-100 text-red-600" },
+};
+
+function PaymentBadge({ status }: { status?: string }) {
+  if (!status) return null;
+  const s = PAY_STATUS[status] ?? { label: status, cls: "bg-gray-100 text-gray-600" };
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.cls}`}>
+      {s.label}
+    </span>
+  );
+}
+
 /* Các bước tiến trình đơn (thanh stepper). */
 const STEPS = ["Chờ xác nhận", "Đang xử lý", "Giao hàng", "Hoàn thành"];
 
@@ -195,7 +219,7 @@ function OrderCard({
         </div>
       )}
 
-      {/* Footer: địa chỉ + tổng tiền */}
+      {/* Footer: địa chỉ + thanh toán + tổng tiền */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
         <span className="flex items-center gap-1.5 text-sm text-gray-500">
           <svg
@@ -218,6 +242,17 @@ function OrderCard({
             {fmt(order.total)}
           </span>
         </span>
+      </div>
+
+      {/* Phương thức + trạng thái thanh toán */}
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+        <span>
+          Thanh toán:{" "}
+          <span className="font-semibold text-gray-700">
+            {PAY_METHOD[order.paymentMethod ?? "cod"] ?? order.paymentMethod}
+          </span>
+        </span>
+        <PaymentBadge status={order.paymentStatus} />
       </div>
     </div>
   );
@@ -366,6 +401,11 @@ function OrderDetailModal({
               <p className="mt-1 text-sm text-gray-600">
                 <span className="font-semibold text-gray-700">Địa chỉ:</span>{" "}
                 {order.shippingAddress?.address || "—"}
+              </p>
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-600">
+                <span className="font-semibold text-gray-700">Thanh toán:</span>{" "}
+                {PAY_METHOD[order.paymentMethod ?? "cod"] ?? order.paymentMethod}
+                <PaymentBadge status={order.paymentStatus} />
               </p>
             </div>
           </div>

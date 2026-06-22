@@ -2,23 +2,27 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { fmt } from "@/lib/format";
+import { apiPost } from "@/lib/api";
 
 /* ─────────────────────────────────────────
    Types
 ───────────────────────────────────────── */
-type Diagnosis = {
-  disease: string;       // tên bệnh dự đoán
-  confidence: number;    // độ tin cậy 0-100
-  cause: string;         // nguyên nhân / mô tả ngắn
+type ChatProduct = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number | null;
+  image: string | null;
+  rating: number;
+  reviewCount: number;
 };
 
-type ProductCard = {
-  id: number;
-  name: string;
-  image: string;
-  price: number;
-  originalPrice?: number;
+type DiagnosisLevel = "cao" | "trung_binh" | "thap";
+
+type Diagnosis = {
+  disease: string;
+  confidence: number; // 0..100
+  level: DiagnosisLevel;
 };
 
 type Message = {
@@ -26,8 +30,8 @@ type Message = {
   role: "bot" | "user";
   text?: string;
   time: string;
-  diagnosis?: Diagnosis;        // khối chẩn đoán bệnh (nếu có)
-  products?: ProductCard[];     // danh sách sản phẩm gợi ý (nếu có)
+  products?: ChatProduct[];
+  diagnosis?: Diagnosis;
 };
 
 /* ─────────────────────────────────────────
@@ -81,6 +85,20 @@ function IconBug() {
   );
 }
 
+/** Lá bị bệnh — dấu cảnh báo (!) trên lá, dùng cho thẻ chẩn đoán bệnh */
+function IconDisease() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+      <path d="M2 21c0-3 1.85-5.36 5.08-6" />
+      <path d="M12 9v3" />
+      <path d="M12 15h.01" />
+    </svg>
+  );
+}
+
 /** Avatar bot — dùng ảnh /chatbot.png trong public. */
 function BotAvatar({ className = "" }: { className?: string }) {
   return (
@@ -95,65 +113,205 @@ function BotAvatar({ className = "" }: { className?: string }) {
 }
 
 /* ─────────────────────────────────────────
-   Dữ liệu mẫu (chưa call API)
+   Render text bot: hỗ trợ **in đậm** và xuống dòng.
+   Bot chỉ dùng 2 cú pháp này nên xử lý thủ công, khỏi thêm thư viện markdown.
 ───────────────────────────────────────── */
-const sampleMessages: Message[] = [
-  {
-    id: 1,
-    role: "bot",
-    text: "Xin chào! Mình là trợ lý ảo của TP Agri 🌾. Bạn mô tả triệu chứng trên cây lúa, mình sẽ dự đoán bệnh và gợi ý sản phẩm phù hợp nhé!",
-    time: "09:00",
-  },
-  {
-    id: 2,
-    role: "user",
-    text: "Lá lúa của mình có vết hình thoi màu nâu xám, viền nâu đậm, lan rộng làm cháy lá. Đây là bệnh gì vậy?",
-    time: "09:01",
-  },
-  {
-    id: 3,
-    role: "bot",
-    text: "Dựa trên mô tả, mình dự đoán cây lúa của bạn đang bị:",
-    time: "09:01",
-    diagnosis: {
-      disease: "Bệnh đạo ôn lá",
-      confidence: 92,
-      cause: "Do nấm Pyricularia oryzae. Vết bệnh hình thoi, tâm xám, viền nâu — gặp nhiều khi ẩm độ cao, bón thừa đạm.",
-    },
-  },
-  {
-    id: 4,
-    role: "bot",
-    text: "Bạn nên phun thuốc đặc trị đạo ôn càng sớm càng tốt. Một số sản phẩm phù hợp:",
-    time: "09:01",
-    products: [
-      {
-        id: 301,
-        name: "Filia® 525SE đặc trị đạo ôn",
-        image: "/thuoc.png",
-        price: 120000,
-        originalPrice: 145000,
-      },
-      {
-        id: 302,
-        name: "Beam® 75WP trừ nấm đạo ôn",
-        image: "/thuoc.png",
-        price: 38000,
-      },
-      {
-        id: 303,
-        name: "Phân bón lá tăng đề kháng Amino",
-        image: "/phanbon.png",
-        price: 52000,
-        originalPrice: 60000,
-      },
-    ],
-  },
-];
+function RichText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split("\n").map((line, li) => (
+        <span key={li} className="block">
+          {line.split(/(\*\*[^*]+\*\*)/g).map((part, pi) =>
+            part.startsWith("**") && part.endsWith("**") ? (
+              <strong key={pi} className="font-semibold">
+                {part.slice(2, -2)}
+              </strong>
+            ) : (
+              <span key={pi}>{part}</span>
+            ),
+          )}
+        </span>
+      ))}
+    </>
+  );
+}
 
+/* ─────────────────────────────────────────
+   Thẻ chẩn đoán — hiện tên bệnh dự đoán + độ tin cậy (% + nhãn + thanh bar).
+───────────────────────────────────────── */
+const DIAGNOSIS_STYLE: Record<
+  DiagnosisLevel,
+  { label: string; text: string; bar: string; bg: string; ring: string }
+> = {
+  cao: {
+    label: "Khả năng cao",
+    text: "text-[#007e42]",
+    bar: "bg-[#007e42]",
+    bg: "bg-emerald-100/60",
+    ring: "ring-[#007e42]/25",
+  },
+  trung_binh: {
+    label: "Khả năng trung bình",
+    text: "text-amber-600",
+    bar: "bg-amber-500",
+    bg: "bg-amber-100/60",
+    ring: "ring-amber-500/25",
+  },
+  thap: {
+    label: "Khả năng thấp",
+    text: "text-gray-500",
+    bar: "bg-gray-400",
+    bg: "bg-gray-100/70",
+    ring: "ring-gray-300",
+  },
+};
+
+/* TEST UI: map tên bệnh → ảnh minh họa trong /public.
+   Tạm dùng chung 1 ảnh để xem bố cục; sau này thay ảnh riêng từng bệnh. */
+function diseaseImage(_name: string): string {
+  return "/dao-on-lua.png";
+}
+
+function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
+  const s = DIAGNOSIS_STYLE[diagnosis.level];
+  const img = diseaseImage(diagnosis.disease);
+  return (
+    <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm">
+      {/* Ảnh minh họa bệnh — object-cover lấp đầy khung banner, vết bệnh ở giữa nên không mất */}
+      {img && (
+        <div className="aspect-[2/1] w-full overflow-hidden bg-gray-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={img} alt={diagnosis.disease} className="h-full w-full object-cover" />
+        </div>
+      )}
+
+      <div className={`px-3 py-2 ${s.bg}`}>
+        <div className="flex items-center gap-1.5">
+          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ${s.text}`}>
+            <IconDisease />
+          </span>
+          <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-800">
+            {diagnosis.disease}
+          </p>
+          <span className={`shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-bold ${s.text}`}>
+            {diagnosis.confidence}%
+          </span>
+        </div>
+
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${s.text}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${s.bar}`} />
+            {s.label}
+          </span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/70">
+            <div
+              className={`h-full rounded-full ${s.bar} transition-all`}
+              style={{ width: `${diagnosis.confidence}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Số sao đánh giá — 5 sao, tô vàng theo rating (làm tròn 0.5). */
+function Stars({ rating }: { rating: number }) {
+  return (
+    <span className="flex items-center">
+      {[1, 2, 3, 4, 5].map((i) => {
+        const filled = rating >= i - 0.25; // sao đầy
+        const half = !filled && rating >= i - 0.75; // nửa sao
+        return (
+          <svg key={i} width="13" height="13" viewBox="0 0 24 24"
+            className={filled || half ? "text-amber-400" : "text-gray-300"} aria-hidden="true">
+            <defs>
+              <linearGradient id={`half-${i}`}>
+                <stop offset="50%" stopColor="currentColor" />
+                <stop offset="50%" stopColor="transparent" />
+              </linearGradient>
+            </defs>
+            <path
+              fill={half ? `url(#half-${i})` : "currentColor"}
+              stroke="currentColor"
+              strokeWidth="1"
+              d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 9.5l6.9-.6z"
+            />
+          </svg>
+        );
+      })}
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Thẻ sản phẩm thuốc gợi ý — bấm sang trang chi tiết sản phẩm.
+───────────────────────────────────────── */
+function ProductCard({ product }: { product: ChatProduct }) {
+  return (
+    <a
+      href={`/san-pham/${product.id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white"
+    >
+      <div className="flex h-56 w-full items-center justify-center overflow-hidden bg-gray-50 p-3">
+        {product.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-full w-full object-contain transition-transform duration-300 group-hover:-translate-y-2"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[#007e42]">
+            <IconLeaf />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
+        <span className="line-clamp-2 min-h-[2.5rem] text-sm font-bold uppercase leading-snug text-gray-800 transition group-hover:text-[#007e42]">
+          {product.name}
+        </span>
+        {product.reviewCount > 0 ? (
+          <div className="flex items-center gap-1.5">
+            <Stars rating={product.rating} />
+            <span className="text-xs text-gray-400">({product.reviewCount} đánh giá)</span>
+          </div>
+        ) : (
+          <span className="text-[11px] text-gray-400">Chưa có đánh giá</span>
+        )}
+        <div className="mt-auto flex flex-wrap items-baseline gap-1.5 pt-1">
+          <span className="text-base font-bold text-[#007e42]">
+            {product.price.toLocaleString("vi-VN")}đ
+          </span>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <span className="text-xs text-gray-400 line-through">
+              {product.originalPrice.toLocaleString("vi-VN")}đ
+            </span>
+          )}
+        </div>
+      </div>
+    </a>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Tin nhắn chào ban đầu
+───────────────────────────────────────── */
+const welcomeMessage: Message = {
+  id: 1,
+  role: "bot",
+  text: "Xin chào! Mình là trợ lý ảo của TP Agri 🌾. Bạn cứ mô tả tình trạng cây lúa hoặc bấm một gợi ý bên dưới, mình hỗ trợ ngay nhé!",
+  time: "",
+};
+
+/* Nút gợi ý nhanh — câu chữ khớp với luật phân loại intent ở backend.
+   Hiện dưới tin chào đầu, ẩn đi sau khi người dùng bắt đầu chat. */
 const quickReplies = [
   "Tư vấn phân bón",
   "Thuốc trị sâu bệnh",
+  "Chẩn đoán bệnh lúa",
   "Liên hệ nhân viên",
 ];
 
@@ -175,30 +333,80 @@ const hintTiers = [
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
   const [hintOpen, setHintOpen] = useState(true);
-  const [messages, setMessages] = useState<Message[]>(sampleMessages);
+  const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Tự cuộn xuống cuối khi có tin nhắn mới hoặc khi mở
+  // Tự cuộn xuống cuối khi có tin nhắn mới, khi mở, hoặc khi bot đang gõ
   useEffect(() => {
     if (open) {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages, open]);
+  }, [messages, open, loading]);
 
   function nowTime() {
     return new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   }
 
-  function handleSend(text: string) {
+  async function handleSend(text: string) {
     const value = text.trim();
-    if (!value) return;
-    // TODO: call API xử lý ở đây. Hiện chỉ append tin nhắn user để xem layout.
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now(), role: "user", text: value, time: nowTime() },
-    ]);
+    if (!value || loading) return;
+
+    const userMsg: Message = {
+      id: Date.now(),
+      role: "user",
+      text: value,
+      time: nowTime(),
+    };
+
+    // Lịch sử gửi lên API = các tin có text (bỏ field UI), map role bot→assistant.
+    const history = [...messages, userMsg]
+      .filter((m) => m.text)
+      .map((m) => ({
+        role: m.role === "bot" ? ("assistant" as const) : ("user" as const),
+        content: m.text as string,
+      }));
+
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setLoading(true);
+
+    try {
+      const { reply, products, diagnosis } = await apiPost<{
+        reply: string;
+        products?: ChatProduct[];
+        diagnosis?: Diagnosis;
+      }>("/chatbot/message", {
+        messages: history,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "bot",
+          text: reply,
+          time: nowTime(),
+          products,
+          diagnosis,
+        },
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "bot",
+          text:
+            err instanceof Error
+              ? err.message
+              : "Xin lỗi, mình đang gặp sự cố. Bạn thử lại sau nhé.",
+          time: nowTime(),
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -277,7 +485,7 @@ export default function ChatbotWidget() {
 
       {/* ── Chat window ── */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-[60] flex h-[680px] max-h-[calc(100vh-7rem)] w-[calc(100vw-2.5rem)] max-w-md flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+        <div className="fixed bottom-24 right-5 z-[60] flex h-[760px] max-h-[calc(100vh-7rem)] w-[calc(100vw-2.5rem)] max-w-xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
 
           {/* Header */}
           <div className="flex items-center gap-3 bg-[#007e42] px-4 py-3 text-white">
@@ -324,7 +532,14 @@ export default function ChatbotWidget() {
                     /* Ô trống giữ thẳng hàng cho các tin bot phía trên */
                     <div className="h-7 w-7 shrink-0" />
                   ))}
-                <div className={`flex flex-col ${msg.role === "user" ? "max-w-[75%] items-end" : "max-w-[85%] items-start"}`}>
+                <div className={`flex flex-col ${msg.role === "user" ? "max-w-[75%] items-end" : "w-full max-w-[92%] items-start"}`}>
+                  {/* Thẻ chẩn đoán — hiện trên cùng cho dễ thấy & tin cậy */}
+                  {msg.diagnosis && (
+                    <div className="mb-2 w-full">
+                      <DiagnosisCard diagnosis={msg.diagnosis} />
+                    </div>
+                  )}
+
                   {/* Bong bóng chữ */}
                   {msg.text && (
                     <div
@@ -334,97 +549,63 @@ export default function ChatbotWidget() {
                           : "rounded-bl-md bg-white text-gray-800"
                       }`}
                     >
-                      {msg.text}
+                      {msg.role === "bot" ? <RichText text={msg.text} /> : msg.text}
                     </div>
                   )}
 
-                  {/* Khối chẩn đoán bệnh */}
-                  {msg.diagnosis && (
-                    <div className="mt-1.5 w-full overflow-hidden rounded-xl border border-[#007e42]/20 bg-linear-to-br from-[#f0f8f3] to-[#e3f1e9] shadow-sm ring-1 ring-inset ring-white/60">
-                      {/* Nhãn AI phía trên */}
-                      <div className="flex items-center gap-1.5 border-b border-[#007e42]/10 px-3 py-1.5">
-                        <span className="flex items-center gap-1 rounded-full bg-[#007e42] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                          </svg>
-                          Dự đoán
-                        </span>
-                      </div>
-
-                      <div className="px-3 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm">🌾</span>
-                          <p className="text-sm font-bold text-[#005f32]">{msg.diagnosis.disease}</p>
-                        </div>
-                        {/* Thanh độ tin cậy */}
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/70 ring-1 ring-inset ring-[#007e42]/10">
-                            <div
-                              className="h-full rounded-full bg-linear-to-r from-[#37b56e] to-[#007e42] transition-all"
-                              style={{ width: `${msg.diagnosis.confidence}%` }}
-                            />
-                          </div>
-                          <span className="shrink-0 text-xs font-bold text-[#007e42]">
-                            {msg.diagnosis.confidence}%
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs leading-relaxed text-gray-600">{msg.diagnosis.cause}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Thẻ sản phẩm gợi ý */}
+                  {/* Thẻ thuốc gợi ý (nhánh chẩn đoán bệnh) — card viền bao trọn */}
                   {msg.products && msg.products.length > 0 && (
-                    <div className="mt-1.5 w-full space-y-2">
-                      {msg.products.map((p) => (
-                        <div
-                          key={p.id}
-                          className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-white p-2 shadow-sm transition hover:border-[#007e42]/40 hover:shadow-md"
-                        >
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#f0f8f3]">
-                            <Image src={p.image} alt={p.name} width={48} height={48} className="h-full w-full object-cover" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-xs font-semibold leading-snug text-gray-800">{p.name}</p>
-                            <div className="mt-0.5 flex items-baseline gap-1.5">
-                              <span className="text-sm font-bold text-[#007e42]">{fmt(p.price)}</span>
-                              {p.originalPrice && (
-                                <span className="text-[10px] text-gray-400 line-through">{fmt(p.originalPrice)}</span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="shrink-0 rounded-full bg-[#007e42] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-[#006838]"
-                          >
-                            Xem
-                          </button>
-                        </div>
-                      ))}
+                    <div className="mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                      <p className="bg-[#007e42] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white">
+                        Sản phẩm gợi ý
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 bg-gray-200 p-3">
+                        {msg.products.map((p) => (
+                          <ProductCard key={p.id} product={p} />
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  <span className="mt-1 px-1 text-[10px] text-gray-400">{msg.time}</span>
+                  {msg.time && (
+                    <span className="mt-1 px-1 text-[10px] text-gray-400">{msg.time}</span>
+                  )}
                 </div>
               </div>
               );
             })}
-          </div>
 
-          {/* Quick replies */}
-          <div className="flex flex-wrap gap-2 border-t border-gray-100 bg-white px-3 py-2">
-            {quickReplies.map((label) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => handleSend(label)}
-                className="rounded-full border border-[#007e42]/30 bg-[#007e42]/5 px-3 py-1 text-xs font-medium text-[#007e42] transition hover:bg-[#007e42]/10"
-              >
-                {label}
-              </button>
-            ))}
+            {/* Nút gợi ý dưới tin chào — chỉ hiện khi chưa bắt đầu chat */}
+            {messages.length === 1 && !loading && (
+              <div className="flex flex-wrap gap-2 pl-9">
+                {quickReplies.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => handleSend(label)}
+                    className="rounded-full border border-[#007e42] bg-white px-4 py-2 text-sm font-medium text-[#007e42] shadow-sm transition hover:bg-[#007e42]! hover:text-white!"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Bong bóng "đang gõ" khi chờ bot trả lời */}
+            {loading && (
+              <div className="flex items-end gap-2 justify-start">
+                <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full ring-1 ring-[#007e42]/20">
+                  <BotAvatar />
+                </div>
+                <div className="rounded-2xl rounded-bl-md bg-white px-3.5 py-3 shadow-sm">
+                  <span className="flex gap-1">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-[#007e42]/40 [animation-delay:-0.3s]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-[#007e42]/40 [animation-delay:-0.15s]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-[#007e42]/40" />
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input */}
@@ -436,14 +617,15 @@ export default function ChatbotWidget() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhập tin nhắn..."
-              className="h-10 flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 text-sm text-gray-800 outline-none transition focus:border-[#007e42] focus:ring-2 focus:ring-[#007e42]/20"
+              disabled={loading}
+              placeholder={loading ? "Trợ lý đang trả lời..." : "Nhập tin nhắn..."}
+              className="h-10 flex-1 rounded-full border-2 border-gray-300 bg-gray-50 px-4 text-sm text-gray-800 outline-none transition focus:border-[#007e42] focus:ring-2 focus:ring-[#007e42]/20 disabled:opacity-60"
               aria-label="Nhập tin nhắn"
             />
             <button
               type="submit"
               aria-label="Gửi"
-              disabled={!input.trim()}
+              disabled={!input.trim() || loading}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#007e42] text-white transition hover:bg-[#006838] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <IconSend />

@@ -13,7 +13,12 @@ import {
   type PlaceDetail,
 } from "@/services/addresses";
 import { SHOP_LOCATION } from "@/lib/shop-location";
-import { createOrder, type CreateOrderInput } from "@/services/orders";
+import {
+  createOrder,
+  getVnpayUrl,
+  getMomoUrl,
+  type CreateOrderInput,
+} from "@/services/orders";
 import { calcShippingFee } from "@/lib/shipping";
 import AddressForm, {
   EMPTY_ADDRESS,
@@ -121,7 +126,7 @@ const PAY_METHODS: {
   {
     id: "vnpay",
     label: "VNPAY",
-    desc: "Quét QR / thẻ ngân hàng (Đang bảo trì)",
+    desc: "Quét QR / thẻ ngân hàng (Sandbox)",
     icon: (
       // eslint-disable-next-line @next/next/no-img-element
       <img src="/vnpay.png" alt="VNPAY" className="h-6 w-6 rounded object-contain" />
@@ -130,7 +135,7 @@ const PAY_METHODS: {
   {
     id: "momo",
     label: "Ví MoMo",
-    desc: "Thanh toán qua ví MoMo (Đang bảo trì)",
+    desc: "Thanh toán qua ví MoMo (Sandbox)",
     icon: (
       // eslint-disable-next-line @next/next/no-img-element
       <img src="/momo.png" alt="MoMo" className="h-6 w-6 rounded object-contain" />
@@ -286,9 +291,16 @@ export default function CheckoutPage() {
     setError("");
 
     // Dựng body: ưu tiên addressId nếu đang chọn từ sổ, ngược lại nhập tay.
+    // COD, VNPay và MoMo đều được gửi lên backend.
+    const paymentMethod = payMethod; // "cod" | "vnpay" | "momo"
+
     let body: CreateOrderInput;
     if (mode === "select" && selectedId) {
-      body = { addressId: selectedId, note: note.trim() || undefined };
+      body = {
+        addressId: selectedId,
+        note: note.trim() || undefined,
+        paymentMethod,
+      };
     } else {
       const errs = validateAddress(form);
       if (Object.keys(errs).length > 0) {
@@ -310,6 +322,7 @@ export default function CheckoutPage() {
           lon: resolved?.lon,
         },
         note: note.trim() || undefined,
+        paymentMethod,
       };
     }
 
@@ -337,7 +350,19 @@ export default function CheckoutPage() {
 
       const order = await createOrder(body);
 
-      // Truyền Order sang trang success qua sessionStorage rồi điều hướng.
+      // ── Cổng online: lấy URL thanh toán rồi redirect ──
+      // Đơn đã được tạo (chưa thanh toán), giỏ đã được backend clear.
+      if (paymentMethod === "vnpay" || paymentMethod === "momo") {
+        const { paymentUrl } =
+          paymentMethod === "vnpay"
+            ? await getVnpayUrl(order._id)
+            : await getMomoUrl(order._id);
+        await refresh(); // đồng bộ giỏ trước khi rời trang
+        window.location.href = paymentUrl; // điều hướng sang cổng thanh toán
+        return; // không set busy=false — đang chuyển trang
+      }
+
+      // ── COD: truyền Order sang trang success qua sessionStorage ──
       try {
         sessionStorage.setItem(ORDER_SUCCESS_KEY, JSON.stringify(order));
       } catch {
@@ -517,7 +542,7 @@ export default function CheckoutPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {PAY_METHODS.map((m) => {
                   const checked = payMethod === m.id;
-                  const disabled = m.id !== "cod"; // chỉ COD khả dụng
+                  const disabled = false; // COD + VNPay + MoMo đều khả dụng
                   return (
                     <button
                       key={m.id}
