@@ -32,6 +32,7 @@ type Message = {
   time: string;
   products?: ChatProduct[];
   diagnosis?: Diagnosis;
+  sources?: string[]; // tên tài liệu kỹ thuật nguồn (nhánh ky_thuat)
 };
 
 /* ─────────────────────────────────────────
@@ -95,6 +96,20 @@ function IconDisease() {
       <path d="M2 21c0-3 1.85-5.36 5.08-6" />
       <path d="M12 9v3" />
       <path d="M12 15h.01" />
+    </svg>
+  );
+}
+
+/** Tài liệu — nhãn nguồn cho câu trả lời kỹ thuật (lấy từ tài liệu đã upload) */
+function IconDoc() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
     </svg>
   );
 }
@@ -253,7 +268,7 @@ function ProductCard({ product }: { product: ChatProduct }) {
       href={`/san-pham/${product.id}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white"
+      className="group flex w-[calc(50%-0.375rem)] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white"
     >
       <div className="flex h-56 w-full items-center justify-center overflow-hidden bg-gray-50 p-3">
         {product.image ? (
@@ -373,10 +388,11 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const { reply, products, diagnosis } = await apiPost<{
+      const { reply, products, diagnosis, sources } = await apiPost<{
         reply: string;
         products?: ChatProduct[];
         diagnosis?: Diagnosis;
+        sources?: string[];
       }>("/chatbot/message", {
         messages: history,
       });
@@ -389,6 +405,7 @@ export default function ChatbotWidget() {
           time: nowTime(),
           products,
           diagnosis,
+          sources,
         },
       ]);
     } catch (err) {
@@ -553,13 +570,33 @@ export default function ChatbotWidget() {
                     </div>
                   )}
 
+                  {/* Nhãn nguồn tài liệu (nhánh kỹ thuật) — cho người dùng biết câu
+                      trả lời lấy từ tài liệu thật đã upload, không phải AI bịa ra. */}
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#007e42]">
+                        <IconDoc />
+                        Nguồn từ tài liệu kỹ thuật:
+                      </span>
+                      {msg.sources.map((src) => (
+                        <span
+                          key={src}
+                          className="inline-flex max-w-[180px] items-center truncate rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-[#007e42] ring-1 ring-[#007e42]/20"
+                          title={src}
+                        >
+                          {src}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Thẻ thuốc gợi ý (nhánh chẩn đoán bệnh) — card viền bao trọn */}
                   {msg.products && msg.products.length > 0 && (
                     <div className="mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                       <p className="bg-[#007e42] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-white">
                         Sản phẩm gợi ý
                       </p>
-                      <div className="grid grid-cols-2 gap-3 bg-gray-200 p-3">
+                      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto bg-gray-200 p-3 [scrollbar-width:thin]">
                         {msg.products.map((p) => (
                           <ProductCard key={p.id} product={p} />
                         ))}

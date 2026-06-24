@@ -70,6 +70,29 @@ function IconSprayer() {
   );
 }
 
+/** Bệnh hại lúa — dùng ảnh thật */
+function IconDisease() {
+  return (
+    <Image
+      src="/la_lua.png"
+      alt="Bệnh hại lúa"
+      width={36}
+      height={36}
+      className="object-contain brightness-0 invert"
+    />
+  );
+}
+
+/** Kỹ thuật canh tác — icon sách/tài liệu */
+function IconGuide() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
 /* ─────────────────────────────────────────
    Nav links (left of search)
 ───────────────────────────────────────── */
@@ -83,6 +106,16 @@ const leftLinks = [
     label: "Thuốc BVTV",
     href: "/thuoc-bvtv",
     Icon: IconSprayer,
+  },
+  {
+    label: "Bệnh hại lúa",
+    href: "/benh-lua",
+    Icon: IconDisease,
+  },
+  {
+    label: "Kỹ thuật",
+    href: "/ky-thuat",
+    Icon: IconGuide,
   },
 ] as const;
 
