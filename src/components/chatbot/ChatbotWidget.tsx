@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiUpload } from "@/lib/api";
 
 /* ─────────────────────────────────────────
    Types
@@ -30,6 +30,7 @@ type Message = {
   role: "bot" | "user";
   text?: string;
   time: string;
+  image?: string; // object URL ảnh người dùng vừa gửi (nhánh chẩn đoán qua ảnh)
   products?: ChatProduct[];
   diagnosis?: Diagnosis;
   sources?: string[]; // tên tài liệu kỹ thuật nguồn (nhánh ky_thuat)
@@ -60,6 +61,17 @@ function IconSend() {
   );
 }
 
+/** Ghim kẹp — nút đính ảnh lá lúa để chẩn đoán */
+function IconPaperclip() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
 /** Lá cây — gợi ý tư vấn phân bón */
 function IconLeaf() {
   return (
@@ -82,20 +94,6 @@ function IconBug() {
       <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" />
       <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6Z" />
       <path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4" />
-    </svg>
-  );
-}
-
-/** Lá bị bệnh — dấu cảnh báo (!) trên lá, dùng cho thẻ chẩn đoán bệnh */
-function IconDisease() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-      <path d="M2 21c0-3 1.85-5.36 5.08-6" />
-      <path d="M12 9v3" />
-      <path d="M12 15h.01" />
     </svg>
   );
 }
@@ -187,43 +185,75 @@ function diseaseImage(_name: string): string {
   return "/dao-on-lua.png";
 }
 
+/* Mock tên tiếng Anh + tác nhân theo TÊN BỆNH (tiếng Việt) — giống trang chẩn
+   đoán (/chan-doan), key theo tên vì thẻ chatbot không có slug. */
+const DISEASE_ENGLISH_NAME: Record<string, string> = {
+  "Đạo ôn lá": "Rice Blast",
+  "Đạo ôn cổ bông": "Neck Blast",
+  "Bạc lá (cháy bìa lá)": "Bacterial Leaf Blight",
+  "Lem lép hạt": "Dirty Panicle / Grain Discoloration",
+  "Vàng lùn - lùn xoắn lá": "Rice Grassy Stunt / Ragged Stunt",
+  "Đốm nâu": "Brown Spot",
+};
+
+const DISEASE_CAUSE: Record<string, string> = {
+  "Đạo ôn lá": "Nấm Pyricularia oryzae",
+  "Đạo ôn cổ bông": "Nấm Pyricularia oryzae",
+  "Bạc lá (cháy bìa lá)": "Vi khuẩn Xanthomonas oryzae",
+  "Lem lép hạt": "Nấm và vi khuẩn (Bipolaris, Curvularia...)",
+  "Vàng lùn - lùn xoắn lá": "Virus (rầy nâu truyền bệnh)",
+  "Đốm nâu": "Nấm Bipolaris oryzae",
+};
+
 function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
   const s = DIAGNOSIS_STYLE[diagnosis.level];
   const img = diseaseImage(diagnosis.disease);
+  const englishName = DISEASE_ENGLISH_NAME[diagnosis.disease];
+  const cause = DISEASE_CAUSE[diagnosis.disease];
   return (
-    <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm">
-      {/* Ảnh minh họa bệnh — object-cover lấp đầy khung banner, vết bệnh ở giữa nên không mất */}
-      {img && (
-        <div className="aspect-[2/1] w-full overflow-hidden bg-gray-100">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img} alt={diagnosis.disease} className="h-full w-full object-cover" />
-        </div>
-      )}
+    <div className="flex w-full gap-3 overflow-hidden rounded-xl border-2 border-amber-400 bg-white p-3 shadow-sm">
+      {/* Ảnh minh họa bệnh */}
+      <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={img} alt={diagnosis.disease} className="h-full w-full object-cover" />
+      </div>
 
-      <div className={`px-3 py-2 ${s.bg}`}>
-        <div className="flex items-center gap-1.5">
-          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ${s.text}`}>
-            <IconDisease />
-          </span>
-          <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-gray-800">
-            {diagnosis.disease}
-          </p>
-          <span className={`shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-bold ${s.text}`}>
+      {/* Nội dung */}
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <span className="mb-1 inline-block rounded-full bg-[#007e42] px-2 py-0.5 text-[9px] font-bold uppercase text-white">
+              Khả năng cao nhất
+            </span>
+            <h3 className="text-sm font-extrabold text-gray-900">{diagnosis.disease}</h3>
+            {englishName && (
+              <p className="mt-0.5 text-[11px] text-gray-600">
+                <span className="font-semibold text-gray-500">Tên tiếng Anh: </span>
+                {englishName}
+              </p>
+            )}
+            {cause && (
+              <p className="mt-0.5 text-[11px] text-gray-600">
+                <span className="font-semibold text-gray-500">Tác nhân: </span>
+                {cause}
+              </p>
+            )}
+            <p className={`mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold ${s.text}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${s.bar}`} />
+              {s.label}
+            </p>
+          </div>
+          <span className={`shrink-0 text-base font-black ${s.text}`}>
             {diagnosis.confidence}%
           </span>
         </div>
 
-        <div className="mt-1.5 flex items-center gap-2">
-          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${s.text}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${s.bar}`} />
-            {s.label}
-          </span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/70">
-            <div
-              className={`h-full rounded-full ${s.bar} transition-all`}
-              style={{ width: `${diagnosis.confidence}%` }}
-            />
-          </div>
+        {/* Thanh độ tin cậy */}
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div
+            className={`h-full rounded-full transition-all ${s.bar}`}
+            style={{ width: `${diagnosis.confidence}%` }}
+          />
         </div>
       </div>
     </div>
@@ -270,7 +300,7 @@ function ProductCard({ product }: { product: ChatProduct }) {
       rel="noopener noreferrer"
       className="group flex w-[calc(50%-0.375rem)] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white"
     >
-      <div className="flex h-56 w-full items-center justify-center overflow-hidden bg-gray-50 p-3">
+      <div className="flex h-44 w-full items-center justify-center overflow-hidden bg-gray-50 p-3">
         {product.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -352,6 +382,7 @@ export default function ChatbotWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Tự cuộn xuống cuối khi có tin nhắn mới, khi mở, hoặc khi bot đang gõ
   useEffect(() => {
@@ -383,6 +414,13 @@ export default function ChatbotWidget() {
         content: m.text as string,
       }));
 
+    // SP đang hiển thị = thẻ SP của tin bot gần nhất có products. Gửi kèm để bot
+    // so sánh ĐÚNG các SP người dùng đang nhìn (nhánh so_sanh ở backend).
+    const lastProducts = [...messages]
+      .reverse()
+      .find((m) => m.role === "bot" && m.products && m.products.length > 0)?.products;
+    const comparedProductIds = lastProducts?.map((p) => p.id);
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -395,6 +433,7 @@ export default function ChatbotWidget() {
         sources?: string[];
       }>("/chatbot/message", {
         messages: history,
+        ...(comparedProductIds?.length ? { comparedProductIds } : {}),
       });
       setMessages((prev) => [
         ...prev,
@@ -418,6 +457,87 @@ export default function ChatbotWidget() {
             err instanceof Error
               ? err.message
               : "Xin lỗi, mình đang gặp sự cố. Bạn thử lại sau nhé.",
+          time: nowTime(),
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Gửi ẢNH lá lúa → gọi /chatbot/predict-image (model AI dự đoán bệnh), hiển thị
+  // thẻ chẩn đoán + thuốc gợi ý giống nhánh mô tả bằng chữ.
+  async function handleSendImage(file: File) {
+    if (loading) return;
+
+    // Validate khớp giới hạn ml-service (JPG/PNG/WEBP, ≤5MB) để báo lỗi sớm.
+    const okType = ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(
+      file.type,
+    );
+    if (!okType) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          role: "bot",
+          text: "Ảnh phải là JPG, PNG hoặc WEBP bạn nhé.",
+          time: nowTime(),
+        },
+      ]);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          role: "bot",
+          text: "Ảnh vượt quá 5MB, bạn chọn ảnh nhẹ hơn nhé.",
+          time: nowTime(),
+        },
+      ]);
+      return;
+    }
+
+    const userMsg: Message = {
+      id: Date.now(),
+      role: "user",
+      text: "Đã gửi 1 ảnh lá lúa",
+      image: URL.createObjectURL(file),
+      time: nowTime(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const { reply, products, diagnosis } = await apiUpload<{
+        reply: string;
+        products?: ChatProduct[];
+        diagnosis?: Diagnosis;
+      }>("/chatbot/predict-image", form);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "bot",
+          text: reply,
+          time: nowTime(),
+          products,
+          diagnosis,
+        },
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "bot",
+          text:
+            err instanceof Error
+              ? err.message
+              : "Xin lỗi, mình chưa chẩn đoán được ảnh này. Bạn thử lại sau nhé.",
           time: nowTime(),
         },
       ]);
@@ -557,6 +677,18 @@ export default function ChatbotWidget() {
                     </div>
                   )}
 
+                  {/* Ảnh người dùng gửi (nhánh chẩn đoán qua ảnh) */}
+                  {msg.image && (
+                    <div className="mb-1 overflow-hidden rounded-2xl rounded-br-md border border-[#007e42]/20 bg-white shadow-sm">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={msg.image}
+                        alt="Ảnh lá lúa đã gửi"
+                        className="max-h-48 w-auto max-w-[220px] object-cover"
+                      />
+                    </div>
+                  )}
+
                   {/* Bong bóng chữ */}
                   {msg.text && (
                     <div
@@ -650,6 +782,29 @@ export default function ChatbotWidget() {
             onSubmit={handleSubmit}
             className="flex items-center gap-2 border-t border-gray-200 bg-white px-3 py-3"
           >
+            {/* Input file ẩn — mở khi bấm nút ghim */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleSendImage(file);
+                e.target.value = ""; // reset để chọn lại cùng ảnh được
+              }}
+            />
+            {/* Nút đính ảnh lá lúa để chẩn đoán */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              aria-label="Gửi ảnh lá lúa"
+              title="Gửi ảnh lá lúa để chẩn đoán bệnh"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#007e42] transition hover:bg-[#007e42]/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <IconPaperclip />
+            </button>
             <input
               type="text"
               value={input}

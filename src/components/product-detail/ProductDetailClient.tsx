@@ -13,45 +13,7 @@ import { getProductReviews } from "@/services/reviews";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
-/* ── Fake data (demo trình bày — luôn hiển thị) ── */
-const FAKE_DESCRIPTION = `Sản phẩm vật tư nông nghiệp chất lượng cao, được tuyển chọn kỹ lưỡng nhằm hỗ trợ cây trồng phát triển khỏe mạnh qua từng giai đoạn sinh trưởng. Công thức cân đối giúp tăng sức đề kháng, cải thiện năng suất và chất lượng nông sản.
-
-Phù hợp với nhiều loại cây trồng phổ biến như lúa, rau màu, cây ăn trái và cây công nghiệp. Sản phẩm thân thiện với môi trường, an toàn cho người sử dụng khi tuân thủ đúng hướng dẫn.`;
-
-const FAKE_HIGHLIGHTS = [
-  "Thành phần dinh dưỡng cân đối, dễ hấp thu",
-  "Giúp cây sinh trưởng nhanh, tăng năng suất",
-  "An toàn cho cây trồng và thân thiện môi trường",
-  "Bảo quản dễ dàng, hạn sử dụng dài",
-];
-
-const FAKE_SPECS: { label: string; value: string }[] = [
-  { label: "Xuất xứ", value: "Việt Nam" },
-  { label: "Quy cách", value: "Bao 5kg / 10kg / 25kg" },
-  { label: "Dạng", value: "Hạt / Bột hòa tan" },
-  { label: "Bảo quản", value: "Nơi khô ráo, thoáng mát" },
-];
-
-const FAKE_USAGE_STEPS = [
-  "Đọc kỹ hướng dẫn và xác định liều lượng phù hợp với loại cây trồng.",
-  "Pha hoặc rải theo tỷ lệ khuyến cáo, tránh dùng quá liều.",
-  "Áp dụng vào sáng sớm hoặc chiều mát để đạt hiệu quả tốt nhất.",
-  "Tưới nước đầy đủ sau khi bón để dưỡng chất thấm đều vào đất.",
-];
-
-const FAKE_NOTES = [
-  "Đeo găng tay và khẩu trang khi sử dụng.",
-  "Để xa tầm tay trẻ em và vật nuôi.",
-  "Không sử dụng khi trời sắp mưa lớn.",
-];
-
-type Tab = "mo-ta" | "huong-dan" | "thong-so";
-
-const TABS: { value: Tab; label: string }[] = [
-  { value: "mo-ta", label: "Mô tả sản phẩm" },
-  { value: "huong-dan", label: "Hướng dẫn sử dụng" },
-  { value: "thong-so", label: "Thông số kỹ thuật" },
-];
+type Tab = "mo-ta" | "huong-dan" | "thanh-phan";
 
 export default function ProductDetailClient({ product }: { product: Product }) {
   const router = useRouter();
@@ -59,6 +21,17 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const [activeImage, setActiveImage] = useState(0);
   const [qty, setQty] = useState(1);
+
+  // Chỉ hiển thị tab có dữ liệu thật (mô tả luôn có; hướng dẫn / thành phần tùy SP).
+  const tabs: { value: Tab; label: string }[] = [
+    { value: "mo-ta", label: "Mô tả sản phẩm" },
+    ...(product.usageInstructions?.trim()
+      ? [{ value: "huong-dan" as Tab, label: "Hướng dẫn sử dụng" }]
+      : []),
+    ...(product.ingredients?.trim()
+      ? [{ value: "thanh-phan" as Tab, label: "Thành phần" }]
+      : []),
+  ];
   const [activeTab, setActiveTab] = useState<Tab>("mo-ta");
   const [carted, setCarted] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -93,8 +66,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   }, [loadReviews]);
 
   const images = product.images ?? [];
-  // Demo trình bày: luôn hiện tối thiểu 4 ô thumbnail (ô đầu là ảnh thật, còn lại placeholder)
-  const thumbCount = Math.max(images.length, 4);
   const outOfStock = product.stock === 0;
   const discountPct =
     product.originalPrice && product.originalPrice > product.price
@@ -104,7 +75,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   // Đánh giá thật từ backend (0 nếu chưa có review nào)
   const ratingValue = rating.average;
   const ratingCount = rating.count;
-  const soldCount = 1280;
 
   useEffect(() => {
     if (!product.categoryId) return;
@@ -194,13 +164,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               )}
             </div>
 
-            {/* Thumbnails — luôn hiển thị; nếu chưa có ảnh thật thì dùng ô placeholder để xem layout */}
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              {Array.from({ length: thumbCount }).map((_, i) => {
-                const img = images[i];
-                return (
+            {/* Thumbnails — chỉ hiển thị khi có nhiều hơn 1 ảnh thật */}
+            {images.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {images.map((img, i) => (
                   <button
-                    key={img?.publicId ?? `placeholder-${i}`}
+                    key={img.publicId}
                     onClick={() => setActiveImage(i)}
                     className={`flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 bg-emerald-50/40 transition ${
                       i === activeImage
@@ -208,16 +177,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                         : "border-gray-200 hover:border-[#007e42]/50"
                     }`}
                   >
-                    {img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={img.url} alt={`${product.name} ${i + 1}`} className="h-full w-full object-contain p-1.5" />
-                    ) : (
-                      <ILeaf size={28} />
-                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.url} alt={`${product.name} ${i + 1}`} className="h-full w-full object-contain p-1.5" />
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── CỘT PHẢI: Info ── */}
@@ -239,10 +204,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               <span className="h-4 w-px bg-gray-200" />
               <span className="text-gray-500">
                 <span className="font-semibold text-gray-700">{ratingCount}</span> đánh giá
-              </span>
-              <span className="h-4 w-px bg-gray-200" />
-              <span className="text-gray-500">
-                Đã bán <span className="font-semibold text-gray-700">{soldCount.toLocaleString("vi-VN")}</span>
               </span>
             </div>
 
@@ -359,7 +320,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         <div className="mt-10 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           {/* Thanh tab — mỗi tab là 1 button bo góc */}
           <div className="flex flex-wrap gap-2 border-b border-gray-100 p-3">
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <button
                 key={t.value}
                 onClick={() => setActiveTab(t.value)}
@@ -378,65 +339,23 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <div className="p-6">
             {/* Mô tả */}
             {activeTab === "mo-ta" && (
-              <div>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
-                  {product.description?.trim() || FAKE_DESCRIPTION}
-                </p>
-                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {FAKE_HIGHLIGHTS.map((h) => (
-                    <div key={h} className="flex items-start gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2.5">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#007e42] text-[11px] font-bold text-white">✓</span>
-                      <span className="text-xs font-medium text-gray-700">{h}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
+                {product.description?.trim() || "Chưa có mô tả cho sản phẩm này."}
+              </p>
             )}
 
-            {/* Hướng dẫn */}
+            {/* Hướng dẫn sử dụng */}
             {activeTab === "huong-dan" && (
-              <div>
-                {product.usageInstructions?.trim() ? (
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
-                    {product.usageInstructions}
-                  </p>
-                ) : (
-                  <ol className="flex flex-col gap-3">
-                    {FAKE_USAGE_STEPS.map((step, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#007e42] text-sm font-bold text-white">
-                          {i + 1}
-                        </span>
-                        <span className="pt-0.5 text-sm leading-relaxed text-gray-600">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-
-                <div className="mt-5 rounded-xl border border-amber-200 bg-amber-100 p-4">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-700">⚠ Lưu ý an toàn</p>
-                  <ul className="flex flex-col gap-1.5">
-                    {FAKE_NOTES.map((n) => (
-                      <li key={n} className="flex items-start gap-2 text-xs text-amber-800">
-                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
-                        <span>{n}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
+                {product.usageInstructions}
+              </p>
             )}
 
-            {/* Thông số */}
-            {activeTab === "thong-so" && (
-              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {FAKE_SPECS.map((s) => (
-                  <div key={s.label} className="flex items-center justify-between gap-3 rounded-xl border border-gray-300 bg-gray-100 px-3 py-2.5">
-                    <dt className="text-xs font-medium text-gray-500">{s.label}</dt>
-                    <dd className="text-right text-xs font-semibold text-gray-700">{s.value}</dd>
-                  </div>
-                ))}
-              </dl>
+            {/* Thành phần / hoạt chất */}
+            {activeTab === "thanh-phan" && (
+              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-600">
+                {product.ingredients}
+              </p>
             )}
           </div>
         </div>

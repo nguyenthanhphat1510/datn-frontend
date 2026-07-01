@@ -21,12 +21,49 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/** Thông báo hiển thị cho người dùng khi phiên đăng nhập hết hạn. */
+export const SESSION_EXPIRED_MESSAGE =
+  "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+
+/**
+ * Dọn phiên hết hạn và đưa người dùng về trang đăng nhập.
+ * Gọi khi API trả 401 với request có kèm token (token hết hạn/không hợp lệ).
+ * Chỉ chạy phía client; kèm ?next= để quay lại trang cũ sau khi đăng nhập.
+ */
+function handleUnauthorized() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("user");
+  const { pathname, search } = window.location;
+  // Tránh vòng lặp nếu đang ở sẵn trang đăng nhập.
+  if (pathname.startsWith("/dang-nhap")) return;
+  const next = encodeURIComponent(pathname + search);
+  window.location.href = `/dang-nhap?next=${next}`;
+}
+
 /** Trích thông điệp lỗi từ response body (NestJS trả { message }). */
 async function parseError(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => null);
   if (!data) return fallback;
   if (Array.isArray(data.message)) return data.message.join(", ");
   return data.message || fallback;
+}
+
+/**
+ * Ném lỗi từ response lỗi. Nếu là 401 trên request có kèm token,
+ * coi như phiên hết hạn: dọn phiên + điều hướng về đăng nhập, và ném
+ * thông báo thân thiện thay cho "Unauthorized" thô từ backend.
+ */
+async function throwResponseError(
+  res: Response,
+  fallback: string,
+  authed: boolean,
+): Promise<never> {
+  if (res.status === 401 && authed) {
+    handleUnauthorized();
+    throw new Error(SESSION_EXPIRED_MESSAGE);
+  }
+  throw new Error(await parseError(res, fallback));
 }
 
 interface RequestOptions {
@@ -48,7 +85,7 @@ export async function apiGet<T>(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(await parseError(res, `GET ${path} thất bại`));
+    await throwResponseError(res, `GET ${path} thất bại`, !!options.auth);
   }
   return (await res.json()) as T;
 }
@@ -70,7 +107,7 @@ async function mutate<T>(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(await parseError(res, `${method} ${path} thất bại`));
+    await throwResponseError(res, `${method} ${path} thất bại`, !!options.auth);
   }
   return (await res.json()) as T;
 }
@@ -117,7 +154,7 @@ export async function apiUpload<T>(
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(await parseError(res, `POST ${path} thất bại`));
+    await throwResponseError(res, `POST ${path} thất bại`, !!options.auth);
   }
   return (await res.json()) as T;
 }

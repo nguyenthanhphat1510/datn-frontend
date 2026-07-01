@@ -26,8 +26,8 @@ function AuthCallbackInner() {
   }, [loginWithToken, router, sp]);
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gradient-to-br from-[#e8f5ec] via-[#f5fbf7] to-[#e0f0e6] px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl ring-1 ring-black/5">
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#e5e7eb] px-4">
+      <div className="w-full max-w-sm rounded-2xl border-2 border-gray-200 bg-white p-8 text-center shadow-xl">
         {error ? (
           <>
             <h1 className="mb-2 text-lg font-bold text-red-600">

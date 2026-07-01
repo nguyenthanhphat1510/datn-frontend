@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_URL } from "@/lib/api";
 
@@ -74,9 +74,18 @@ function IconGoogle() {
   );
 }
 
+/** Chỉ cho phép redirect nội bộ (bắt đầu bằng "/" nhưng không phải "//") để tránh open-redirect. */
+function safeNext(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 export default function AuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, register } = useAuth();
+  const next = safeNext(searchParams.get("next"));
 
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -129,7 +138,7 @@ export default function AuthForm() {
           ? "Đăng nhập thành công! Đang chuyển trang..."
           : "Đăng ký thành công! Đang chuyển trang...",
       );
-      setTimeout(() => router.push("/"), 800);
+      setTimeout(() => router.push(next), 800);
     } catch (err) {
       const msg =
         err instanceof Error
@@ -146,9 +155,9 @@ export default function AuthForm() {
   }
 
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
+    <div className="w-full max-w-md overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-xl">
       {/* Tabs */}
-      <div className="relative grid grid-cols-2 bg-[#f1f7f3] text-sm font-semibold">
+      <div className="relative grid grid-cols-2 border-b-2 border-gray-200 bg-[#f1f7f3] text-sm font-semibold">
         <button
           type="button"
           onClick={() => switchMode("login")}
@@ -286,15 +295,15 @@ export default function AuthForm() {
         </form>
 
         <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-wider text-gray-400">
-          <span className="h-px flex-1 bg-gray-200" />
+          <span className="h-0.5 flex-1 bg-gray-300" />
           hoặc
-          <span className="h-px flex-1 bg-gray-200" />
+          <span className="h-0.5 flex-1 bg-gray-300" />
         </div>
 
         <button
           type="button"
           onClick={handleGoogle}
-          className="flex w-full items-center justify-center gap-2.5 rounded-full border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-[#007e42]/40 hover:bg-[#f1f7f3]"
+          className="flex w-full items-center justify-center gap-2.5 rounded-full border-2 border-gray-300 bg-white py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-[#007e42]/40 hover:bg-[#f1f7f3]"
         >
           <IconGoogle />
           Tiếp tục với Google
@@ -339,7 +348,7 @@ function Field({
   return (
     <label className="block">
       <span className="mb-1 block text-xs font-semibold text-gray-700">{label}</span>
-      <span className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 transition focus-within:border-[#007e42] focus-within:ring-2 focus-within:ring-[#007e42]/20">
+      <span className="flex items-center gap-2 rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 transition focus-within:border-[#007e42] focus-within:ring-2 focus-within:ring-[#007e42]/20">
         <span className="text-gray-400">{icon}</span>
         <input
           type={type}

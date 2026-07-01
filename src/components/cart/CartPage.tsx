@@ -304,15 +304,19 @@ function CartItemRow({
         >
           {item.name}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-sm font-bold text-[#007e42]">
             {fmt(item.price)}
+          </span>
+          {/* Thành tiền — chỉ hiện trên mobile (desktop có cột riêng) */}
+          <span className="text-xs text-gray-500 sm:hidden">
+            = <span className="font-semibold text-gray-700">{fmt(item.subtotal)}</span>
           </span>
         </div>
       </div>
 
       {/* Quantity */}
-      <div className="flex w-28 shrink-0 items-center justify-center">
+      <div className="flex w-auto shrink-0 items-center justify-center sm:w-28">
         <QuantityStepper
           quantity={item.quantity}
           disabled={disabled}
@@ -321,8 +325,8 @@ function CartItemRow({
         />
       </div>
 
-      {/* Subtotal */}
-      <div className="w-28 shrink-0 text-right">
+      {/* Subtotal — ẩn cột riêng trên mobile (đã hiện ở phần Info) */}
+      <div className="hidden w-28 shrink-0 text-right sm:block">
         <p className="text-base font-bold text-[#007e42]">{fmt(item.subtotal)}</p>
       </div>
 

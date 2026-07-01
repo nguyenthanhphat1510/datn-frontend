@@ -35,6 +35,9 @@ export default function BenhLuaPage() {
   /* ── Thuốc gợi ý: map theo từng bệnh ── */
   const [recProducts, setRecProducts] = useState<Record<string, Product[]>>({});
 
+  /* ── Ảnh đang xem (index) theo từng bệnh, cho gallery nhiều ảnh ── */
+  const [activeImgIdx, setActiveImgIdx] = useState<Record<string, number>>({});
+
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   /* ── Tải danh sách bệnh từ backend ── */
@@ -126,8 +129,16 @@ export default function BenhLuaPage() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const diseaseImg = (d: Disease) =>
-    d.images?.[0]?.url || DISEASE_IMAGE_BY_SLUG[d.slug] || FALLBACK_IMG;
+  /**
+   * Danh sách URL ảnh của 1 bệnh cho gallery. Ưu tiên toàn bộ ảnh trong DB
+   * (Cloudinary); nếu bệnh chưa có ảnh DB thì fallback về ảnh local theo slug,
+   * cuối cùng là ảnh mặc định. Luôn trả tối thiểu 1 ảnh.
+   */
+  const diseaseImages = (d: Disease): string[] => {
+    const dbUrls = (d.images ?? []).map((img) => img.url).filter(Boolean);
+    if (dbUrls.length > 0) return dbUrls;
+    return [DISEASE_IMAGE_BY_SLUG[d.slug] || FALLBACK_IMG];
+  };
 
   /* ── Mục lục (sidebar nội dung) ── */
   const TableOfContents = (
@@ -265,21 +276,68 @@ export default function BenhLuaPage() {
                       {/* Nội dung bệnh */}
                       <div className="p-6 sm:p-8">
 
-                      {/* Ảnh minh họa */}
-                      <figure className="mb-6 overflow-hidden rounded-xl border border-gray-100">
-                        <div className="relative h-72 w-full bg-gradient-to-br from-[#ebf5ef] to-[#cce8d9] sm:h-[28rem]">
-                          <Image
-                            src={diseaseImg(d)}
-                            alt={d.name}
-                            fill
-                            sizes="(max-width: 1024px) 100vw, 720px"
-                            className="object-cover"
-                          />
-                        </div>
-                        <figcaption className="bg-gray-200 px-4 py-2 text-[11px] italic text-gray-500">
-                          Hình ảnh minh họa: {d.name}
-                        </figcaption>
-                      </figure>
+                      {/* Ảnh minh họa — gallery nhiều ảnh */}
+                      {(() => {
+                        const imgs = diseaseImages(d);
+                        const current = Math.min(
+                          activeImgIdx[d._id] ?? 0,
+                          imgs.length - 1,
+                        );
+                        return (
+                          <figure className="mb-6 overflow-hidden rounded-xl border border-gray-100">
+                            <div className="relative h-72 w-full bg-gradient-to-br from-[#ebf5ef] to-[#cce8d9] sm:h-[28rem]">
+                              <Image
+                                src={imgs[current]}
+                                alt={`${d.name} - ảnh ${current + 1}`}
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 720px"
+                                className="object-cover"
+                              />
+                              {imgs.length > 1 && (
+                                <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                                  {current + 1} / {imgs.length}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Hàng thumbnail — chỉ hiện khi có nhiều hơn 1 ảnh */}
+                            {imgs.length > 1 && (
+                              <div className="flex gap-2 overflow-x-auto bg-gray-50 px-3 py-3">
+                                {imgs.map((url, idx) => (
+                                  <button
+                                    key={url + idx}
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveImgIdx((prev) => ({
+                                        ...prev,
+                                        [d._id]: idx,
+                                      }))
+                                    }
+                                    className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                                      idx === current
+                                        ? "border-[#007e42] ring-2 ring-[#007e42]/30"
+                                        : "border-transparent opacity-70 hover:opacity-100"
+                                    }`}
+                                  >
+                                    <Image
+                                      src={url}
+                                      alt={`${d.name} - ảnh nhỏ ${idx + 1}`}
+                                      fill
+                                      sizes="64px"
+                                      className="object-cover"
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            <figcaption className="bg-gray-200 px-4 py-2 text-[11px] italic text-gray-500">
+                              Hình ảnh minh họa: {d.name}
+                              {imgs.length > 1 && ` (${imgs.length} ảnh)`}
+                            </figcaption>
+                          </figure>
+                        );
+                      })()}
 
                       {/* Mô tả / nguyên nhân */}
                       {d.description && (

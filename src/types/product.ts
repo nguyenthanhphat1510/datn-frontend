@@ -15,6 +15,7 @@ export interface Product {
   categoryId: string;
   manufacturer?: string;
   usageInstructions?: string;
+  ingredients?: string;
   images: ProductImage[];
   isActive: boolean;
   createdAt: string;

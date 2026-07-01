@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import UserMenu from "./UserMenu";
 import { useCart } from "@/contexts/CartContext";
+import { fetchProducts } from "@/services/products";
+import { fmt } from "@/lib/format";
+import type { Product } from "@/types/product";
 
 /* ─────────────────────────────────────────
    SVG Icons
@@ -76,17 +80,27 @@ function IconDisease() {
     <Image
       src="/la_lua.png"
       alt="Bệnh hại lúa"
-      width={36}
-      height={36}
+      width={28}
+      height={28}
       className="object-contain brightness-0 invert"
     />
+  );
+}
+
+/** Chẩn đoán bệnh qua ảnh — icon camera quét */
+function IconScan() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }
 
 /** Kỹ thuật canh tác — icon sách/tài liệu */
 function IconGuide() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
     </svg>
@@ -108,6 +122,11 @@ const leftLinks = [
     Icon: IconSprayer,
   },
   {
+    label: "Chẩn đoán bệnh lúa",
+    href: "/chan-doan",
+    Icon: IconScan,
+  },
+  {
     label: "Bệnh hại lúa",
     href: "/benh-lua",
     Icon: IconDisease,
@@ -123,9 +142,14 @@ const leftLinks = [
    Search Bar
 ───────────────────────────────────────── */
 function SearchBar({ className = "" }: { className?: string }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [phIndex, setPhIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
+  const [results, setResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   const phrases = [
     "Tìm kiếm phân bón...",
@@ -141,45 +165,147 @@ function SearchBar({ className = "" }: { className?: string }) {
     return () => clearInterval(interval);
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (query.trim()) {
-      window.location.href = `/tim-kiem?q=${encodeURIComponent(query.trim())}`;
+  // Gợi ý sản phẩm khi gõ — debounce 300ms, lấy tối đa 6 SP khớp tên.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 1) {
+      setResults([]);
+      setSearching(false);
+      return;
     }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      fetchProducts({ search: q, limit: 6 })
+        .then((res) => setResults(res.data))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Bấm ra ngoài → đóng dropdown.
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  function goToSearch(q: string) {
+    const value = q.trim();
+    if (!value) return;
+    setOpen(false);
+    router.push(`/tim-kiem?q=${encodeURIComponent(value)}`);
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    goToSearch(query);
+  }
+
+  const showDropdown = open && query.trim().length > 0;
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={`relative flex h-10 items-center rounded-full border border-transparent bg-white px-4 shadow-sm transition focus-within:ring-2 focus-within:ring-white/60 ${className}`}
-    >
-      <span className="z-10 text-[#007e42]">
-        <IconSearch />
-      </span>
-      <div className="relative ml-2 flex h-full flex-1 items-center overflow-hidden">
-        {/* Animated Placeholder Overlay */}
-        {!query && !isFocused && (
-          <div className="pointer-events-none absolute inset-0 flex items-center">
-            <span
-              key={phIndex}
-              className="text-sm font-medium text-[#007e42]/60"
-              style={{ animation: "0.4s ease 0s 1 normal none running slideUpFade" }}
-            >
-              {phrases[phIndex]}
-            </span>
-          </div>
-        )}
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className="relative z-10 h-full w-full bg-transparent text-sm font-medium text-[#007e42] outline-none"
-          aria-label="Tìm kiếm"
-        />
-      </div>
-    </form>
+    <div ref={boxRef} className={`relative ${className}`}>
+      <form
+        onSubmit={handleSubmit}
+        className="relative flex h-10 items-center rounded-full border border-transparent bg-white px-4 shadow-sm transition focus-within:ring-2 focus-within:ring-white/60"
+      >
+        <span className="z-10 text-[#007e42]">
+          <IconSearch />
+        </span>
+        <div className="relative ml-2 flex h-full flex-1 items-center overflow-hidden">
+          {/* Animated Placeholder Overlay */}
+          {!query && !isFocused && (
+            <div className="pointer-events-none absolute inset-0 flex items-center">
+              <span
+                key={phIndex}
+                className="text-sm font-medium text-[#007e42]/60"
+                style={{ animation: "0.4s ease 0s 1 normal none running slideUpFade" }}
+              >
+                {phrases[phIndex]}
+              </span>
+            </div>
+          )}
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => {
+              setIsFocused(true);
+              setOpen(true);
+            }}
+            onBlur={() => setIsFocused(false)}
+            className="relative z-10 h-full w-full bg-transparent text-sm font-medium text-[#007e42] outline-none"
+            aria-label="Tìm kiếm"
+          />
+        </div>
+      </form>
+
+      {/* Dropdown gợi ý sản phẩm */}
+      {showDropdown && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white text-gray-800 shadow-xl">
+          {searching && results.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-gray-400">Đang tìm...</div>
+          ) : results.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-gray-400">
+              Không tìm thấy sản phẩm nào khớp &laquo;{query.trim()}&raquo;
+            </div>
+          ) : (
+            <>
+              <ul className="max-h-96 overflow-y-auto py-1">
+                {results.map((p) => (
+                  <li key={p._id}>
+                    <Link
+                      href={`/san-pham/${p._id}`}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 transition hover:bg-emerald-50"
+                    >
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                        {p.images?.[0]?.url ? (
+                          <Image
+                            src={p.images[0].url}
+                            alt={p.name}
+                            fill
+                            sizes="44px"
+                            className="object-contain"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-gray-700">{p.name}</p>
+                        <p className="text-sm font-bold text-[#007e42]">
+                          {fmt(p.price)}
+                          {p.originalPrice && p.originalPrice > p.price && (
+                            <span className="ml-1.5 text-xs font-normal text-gray-400 line-through">
+                              {fmt(p.originalPrice)}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {/* Xem tất cả kết quả */}
+              <button
+                type="button"
+                onClick={() => goToSearch(query)}
+                className="block w-full border-t border-gray-100 bg-gray-50 px-4 py-2.5 text-center text-sm font-bold text-[#007e42] transition hover:bg-emerald-50"
+              >
+                Xem tất cả kết quả cho &laquo;{query.trim()}&raquo;
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -192,10 +318,10 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#005f32] bg-[#007e42] shadow-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-3 lg:px-10">
+      <div className="flex w-full items-center gap-4 px-4 py-3 sm:px-8 lg:px-16">
 
         {/* ── Logo ── */}
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5 lg:ml-20">
           <div className="relative flex h-10 w-10 overflow-hidden rounded-xl bg-white/20 shadow-inner ring-1 ring-white/30">
             <Image
               src="/caylua.jpg"
@@ -214,33 +340,29 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* ── Center section: left nav + search ── */}
-        <div className="hidden flex-1 items-center gap-3 md:flex">
-          {/* Left nav links */}
-          <nav className="flex shrink-0 items-center gap-1">
-            {leftLinks.map(({ label, href, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-white/90 transition hover:bg-white/15 hover:text-white"
-              >
-                <span className="transition group-hover:scale-110">
-                  <Icon />
-                </span>
-                {label}
-              </Link>
-            ))}
-          </nav>
+        {/* ── Left nav links ── */}
+        <nav className="hidden shrink-0 items-center gap-1 md:flex">
+          {leftLinks.map(({ label, href, Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-white/90 transition hover:bg-white/15 hover:text-white"
+            >
+              <span className="transition group-hover:scale-110">
+                <Icon />
+              </span>
+              {label}
+            </Link>
+          ))}
+        </nav>
 
-          {/* Divider */}
-          <span className="h-5 w-px shrink-0 bg-white/20" />
-
-          {/* Search bar */}
-          <SearchBar className="w-full max-w-md flex-1" />
+        {/* ── Center: search (giãn lấp khoảng trống, giới hạn bề rộng tối đa) ── */}
+        <div className="hidden min-w-55 max-w-sm flex-1 md:flex">
+          <SearchBar className="w-full" />
         </div>
 
         {/* ── Right: cart + user ── */}
-        <div className="hidden shrink-0 items-center gap-3 md:flex">
+        <div className="mr-8 hidden shrink-0 items-center gap-2 md:flex lg:mr-20">
           <Link
             href="/gio-hang"
             aria-label="Giỏ hàng"
