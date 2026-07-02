@@ -336,7 +336,7 @@ export default function ProductList() {
       .then((cats) => setCategories(cats.filter((c) => c.isActive)))
       .catch(() => setCategories([]));
 
-    fetchProducts({ limit: 3, page: 1 })
+    fetchProducts({ limit: 5, page: 1 })
       .then((res) => setNewest(res.data))
       .catch(() => setNewest([]));
   }, []);

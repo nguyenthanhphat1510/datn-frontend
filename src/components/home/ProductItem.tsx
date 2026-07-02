@@ -69,11 +69,6 @@ export function ProductCard({ product }: { product: Product }) {
 
       {/* Info */}
       <div className="flex flex-1 flex-col gap-1.5 p-4">
-        {product.manufacturer && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#007e42]/70">
-            {product.manufacturer}
-          </span>
-        )}
         <span className="line-clamp-2 text-sm font-bold uppercase leading-snug text-gray-800 transition group-hover:text-[#007e42] min-h-[2.5rem]">
           {product.name}
         </span>
@@ -114,9 +109,6 @@ export function ProductRow({ product }: { product: Product }) {
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-        {product.manufacturer && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#007e42]/70">{product.manufacturer}</span>
-        )}
         <span className="text-sm font-bold uppercase text-gray-800 group-hover:text-[#007e42] line-clamp-1">
           {product.name}
         </span>

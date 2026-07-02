@@ -48,6 +48,24 @@ export interface Category {
   isActive: boolean;
 }
 
+export interface Subcategory {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  categoryId: string;
+  isActive: boolean;
+}
+
+export interface Manufacturer {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logo?: { url: string; publicId: string } | null;
+  isActive: boolean;
+}
+
 export interface Paginated<T> {
   data: T[];
   total: number;

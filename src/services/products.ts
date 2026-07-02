@@ -1,5 +1,11 @@
 import { apiGet } from "@/lib/api";
-import type { Category, Paginated, Product } from "@/types/product";
+import type {
+  Category,
+  Manufacturer,
+  Paginated,
+  Product,
+  Subcategory,
+} from "@/types/product";
 
 /**
  * Backend lưu { price: giá gốc, salePrice: giá đã giảm }.
@@ -21,6 +27,8 @@ export interface FetchProductsParams {
   page?: number;
   limit?: number;
   categoryId?: string;
+  subcategoryId?: string;
+  manufacturer?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -34,6 +42,8 @@ export async function fetchProducts(
     page: params.page,
     limit: params.limit,
     categoryId: params.categoryId,
+    subcategoryId: params.subcategoryId,
+    manufacturer: params.manufacturer,
     search: params.search,
     minPrice: params.minPrice,
     maxPrice: params.maxPrice,
@@ -44,6 +54,20 @@ export async function fetchProducts(
 
 export function fetchCategories(): Promise<Category[]> {
   return apiGet<Category[]>("/categories");
+}
+
+/** Danh mục con của một danh mục cha (chỉ lấy đang active mặc định). */
+export function fetchSubcategories(categoryId: string): Promise<Subcategory[]> {
+  return apiGet<Subcategory[]>("/subcategories", { categoryId });
+}
+
+/**
+ * Danh sách nhà sản xuất / thương hiệu (chỉ lấy đang active mặc định).
+ * Truyền categoryId để chỉ lấy thương hiệu CÓ sản phẩm thuộc danh mục đó
+ * (vd bộ lọc trang phân bón chỉ hiện brand có bán phân bón).
+ */
+export function fetchManufacturers(categoryId?: string): Promise<Manufacturer[]> {
+  return apiGet<Manufacturer[]>("/manufacturers", { categoryId });
 }
 
 export async function getProduct(id: string): Promise<Product> {

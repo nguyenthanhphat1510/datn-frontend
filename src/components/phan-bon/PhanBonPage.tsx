@@ -2,8 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import type { Category, Product } from "@/types/product";
-import { fetchCategories, fetchProducts } from "@/services/products";
+import type { Category, Manufacturer, Product, Subcategory } from "@/types/product";
+import {
+  fetchCategories,
+  fetchProducts,
+  fetchSubcategories,
+  fetchManufacturers,
+} from "@/services/products";
 import { ProductCard, ProductRow } from "@/components/home/ProductItem";
 import { ILeaf, ISearch, IGrid, IList, IFilter, IHome } from "@/components/icons";
 import PhanBonHero from "./PhanBonHero";
@@ -16,21 +21,12 @@ const PHAN_BON_SLUG = "phan-bon";
 type SortOption = "mac-dinh" | "gia-tang" | "gia-giam";
 type ViewMode = "grid" | "list";
 
-/* ── Fake data: nhóm phân bón (chỉ để xem layout) ── */
-const FERTILIZER_GROUPS: { label: string; count: number }[] = [
-  { label: "Tất cả", count: 0 },
-  { label: "Phân bón lá", count: 12 },
-  { label: "Phân NPK", count: 18 },
-  { label: "Phân hữu cơ", count: 9 },
-  { label: "Phân vi sinh", count: 6 },
-  { label: "Phân đơn (Đạm, Lân, Kali)", count: 8 },
-  { label: "Phân trung - vi lượng", count: 5 },
-];
-
 export default function PhanBonPage() {
   /* ── Catalog state ── */
   const [phanBonCategory, setPhanBonCategory] = useState<Category | null>(null);
   const [categoryLoaded, setCategoryLoaded] = useState(false);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -44,8 +40,10 @@ export default function PhanBonPage() {
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  /* ── Fake filter: nhóm phân bón (chỉ để xem layout, chưa nối API) ── */
-  const [activeGroup, setActiveGroup] = useState("Tất cả");
+  /* ── Nhóm phân bón = subcategory. "" = Tất cả (không lọc) ── */
+  const [activeSubId, setActiveSubId] = useState("");
+  /* ── Thương hiệu = nhà sản xuất. "" = Tất cả (không lọc) ── */
+  const [activeManuId, setActiveManuId] = useState("");
 
   /* ── Tìm category "Phân Bón" theo slug ── */
   useEffect(() => {
@@ -57,6 +55,28 @@ export default function PhanBonPage() {
       .catch(() => setPhanBonCategory(null))
       .finally(() => setCategoryLoaded(true));
   }, []);
+
+  /* ── Nạp danh mục con của Phân Bón để làm bộ lọc nhóm ── */
+  useEffect(() => {
+    if (!phanBonCategory) {
+      setSubcategories([]);
+      return;
+    }
+    fetchSubcategories(phanBonCategory._id)
+      .then((subs) => setSubcategories(subs.filter((s) => s.isActive)))
+      .catch(() => setSubcategories([]));
+  }, [phanBonCategory]);
+
+  /* ── Nạp thương hiệu CÓ sản phẩm phân bón để làm bộ lọc ── */
+  useEffect(() => {
+    if (!phanBonCategory) {
+      setManufacturers([]);
+      return;
+    }
+    fetchManufacturers(phanBonCategory._id)
+      .then((list) => setManufacturers(list.filter((m) => m.isActive)))
+      .catch(() => setManufacturers([]));
+  }, [phanBonCategory]);
 
   /* ── Fetch products với debounce ── */
   useEffect(() => {
@@ -75,6 +95,8 @@ export default function PhanBonPage() {
         page,
         limit: PAGE_SIZE,
         categoryId: phanBonCategory._id,
+        subcategoryId: activeSubId || undefined,
+        manufacturer: activeManuId || undefined,
         search: search.trim() || undefined,
         minPrice: priceRange[0] > PRICE_MIN ? priceRange[0] : undefined,
         maxPrice: priceRange[1] < PRICE_MAX ? priceRange[1] : undefined,
@@ -91,7 +113,7 @@ export default function PhanBonPage() {
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(timer);
-  }, [categoryLoaded, phanBonCategory, page, search, priceRange, reloadKey]);
+  }, [categoryLoaded, phanBonCategory, page, search, priceRange, activeSubId, activeManuId, reloadKey]);
 
   /* ── Client-side sort (page hiện tại) ── */
   const displayed = useMemo(() => {
@@ -107,7 +129,8 @@ export default function PhanBonPage() {
     setSearch("");
     setPriceRange([PRICE_MIN, PRICE_MAX]);
     setSortBy("mac-dinh");
-    setActiveGroup("Tất cả");
+    setActiveSubId("");
+    setActiveManuId("");
     setPage(1);
   };
 
@@ -153,31 +176,47 @@ export default function PhanBonPage() {
               </div>
             </div>
 
-            {/* Nhóm phân bón (fake data – chỉ xem layout) */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nhóm phân bón</h3>
-              <div>
+            {/* Nhóm phân bón (danh mục con thật) */}
+            {subcategories.length > 0 && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Nhóm phân bón</h3>
                 <div className="flex flex-col gap-1.5">
-                  {FERTILIZER_GROUPS.map((g) => (
+                  {[{ _id: "", name: "Tất cả" }, ...subcategories].map((s) => (
                     <button
-                      key={g.label}
+                      key={s._id || "all"}
                       onClick={() => {
-                        setActiveGroup(g.label);
+                        setActiveSubId(s._id);
                         setPage(1);
                       }}
-                      className={`relative flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition text-left ${activeGroup === g.label ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+                      className={`relative flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition text-left ${activeSubId === s._id ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
                     >
-                      <span>{g.label}</span>
-                      {g.count > 0 && (
-                        <span className={`px-2 py-0.5 rounded text-[10px] ${activeGroup === g.label ? "bg-[#007e42] text-white" : "bg-gray-100 text-gray-400"}`}>
-                          {g.count}
-                        </span>
-                      )}
+                      <span>{s.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Thương hiệu (nhà sản xuất) */}
+            {manufacturers.length > 0 && (
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Thương hiệu</h3>
+                <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1">
+                  {[{ _id: "", name: "Tất cả" }, ...manufacturers].map((m) => (
+                    <button
+                      key={m._id || "all"}
+                      onClick={() => {
+                        setActiveManuId(m._id);
+                        setPage(1);
+                      }}
+                      className={`relative flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition text-left ${activeManuId === m._id ? "bg-emerald-50 text-[#007e42] before:absolute before:left-0 before:top-1/2 before:h-4 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-[#007e42]" : "hover:bg-gray-50 text-gray-600"}`}
+                    >
+                      <span>{m.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Price */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-3">
@@ -233,24 +272,45 @@ export default function PhanBonPage() {
                   />
                 </div>
 
+                {subcategories.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-gray-400 uppercase">Nhóm phân bón</h4>
                   <div className="flex flex-col gap-1">
-                    {FERTILIZER_GROUPS.map((g) => (
+                    {[{ _id: "", name: "Tất cả" }, ...subcategories].map((s) => (
                       <button
-                        key={g.label}
+                        key={s._id || "all"}
                         onClick={() => {
-                          setActiveGroup(g.label);
+                          setActiveSubId(s._id);
                           setPage(1);
                         }}
-                        className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition text-left ${activeGroup === g.label ? "bg-emerald-50 text-[#007e42]" : "text-gray-600"}`}
+                        className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition text-left ${activeSubId === s._id ? "bg-emerald-50 text-[#007e42]" : "text-gray-600"}`}
                       >
-                        <span>{g.label}</span>
-                        {g.count > 0 && <span className="text-[10px] text-gray-400">({g.count})</span>}
+                        <span>{s.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
+                )}
+
+                {manufacturers.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase">Thương hiệu</h4>
+                  <div className="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
+                    {[{ _id: "", name: "Tất cả" }, ...manufacturers].map((m) => (
+                      <button
+                        key={m._id || "all"}
+                        onClick={() => {
+                          setActiveManuId(m._id);
+                          setPage(1);
+                        }}
+                        className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition text-left ${activeManuId === m._id ? "bg-emerald-50 text-[#007e42]" : "text-gray-600"}`}
+                      >
+                        <span>{m.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                )}
 
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-gray-400 uppercase">Giá tối đa</h4>
