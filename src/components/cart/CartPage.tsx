@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import type { CartItemResponse } from "@/services/cart";
-import { FREE_SHIP_THRESHOLD } from "@/lib/shipping";
 
 /* ─────────────────────────────────────────
    Helpers
@@ -410,48 +409,21 @@ function CouponInput() {
 function OrderSummary({
   subtotal,
   checkedCount,
+  checkedIds,
 }: {
   subtotal: number;
   checkedCount: number;
+  checkedIds: string[];
 }) {
   // Phí ship tính theo địa chỉ → chỉ chốt ở trang thanh toán.
-  // Ở giỏ chỉ hiển thị tạm tính + tiến trình miễn phí ship.
   const hasSelection = checkedCount > 0;
-  const freeShip = subtotal >= FREE_SHIP_THRESHOLD;
   const total = subtotal; // chưa cộng ship (chốt khi checkout)
-  const toFreeShip = FREE_SHIP_THRESHOLD - subtotal;
 
   return (
     <div className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-[#007e42]/15 bg-white p-5 shadow-lg">
       <h2 className="-mx-5 -mt-5 mb-0 bg-[#007e42] px-5 py-3 text-lg font-bold text-white">
         Tổng Đơn Hàng
       </h2>
-
-      {/* Free ship progress */}
-      {!freeShip && subtotal > 0 && (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
-          <p className="text-xs text-amber-700 font-medium">
-            Mua thêm{" "}
-            <span className="font-bold">{fmt(toFreeShip)}</span> để được{" "}
-            <span className="font-bold text-emerald-600">miễn phí vận chuyển!</span>
-          </p>
-          <div className="mt-2 h-1.5 w-full rounded-full bg-amber-200">
-            <div
-              className="h-full rounded-full bg-[#007e42] transition-all duration-500"
-              style={{
-                width: `${Math.min((subtotal / FREE_SHIP_THRESHOLD) * 100, 100)}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {freeShip && (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-medium text-emerald-700">
-          <span className="text-emerald-600"><ICheck /></span>
-          Bạn được miễn phí vận chuyển!
-        </div>
-      )}
 
       {/* Price rows */}
       <div className="flex flex-col gap-2.5 border-t border-gray-300 pt-3">
@@ -465,13 +437,9 @@ function OrderSummary({
         </div>
         <div className="flex justify-between text-sm text-gray-600">
           <span>Phí vận chuyển</span>
-          {freeShip ? (
-            <span className="font-medium text-emerald-600">Miễn phí</span>
-          ) : (
-            <span className="font-medium text-gray-500">
-              Tính khi thanh toán
-            </span>
-          )}
+          <span className="font-medium text-gray-500">
+            Tính khi thanh toán
+          </span>
         </div>
       </div>
 
@@ -491,15 +459,15 @@ function OrderSummary({
             {fmt(total)}
           </span>
           <p className="text-[11px] text-gray-400">
-            {freeShip ? "Đã gồm VAT · Miễn phí ship" : "Chưa gồm phí vận chuyển"}
+            Chưa gồm phí vận chuyển
           </p>
         </div>
       </div>
 
-      {/* Checkout — chỉ thanh toán các sản phẩm đã chọn */}
+      {/* Checkout — chỉ thanh toán các sản phẩm đã chọn (truyền qua ?items=) */}
       {hasSelection ? (
         <Link
-          href="/thanh-toan"
+          href={`/thanh-toan?items=${checkedIds.join(",")}`}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#007e42] py-3 text-sm font-bold text-white shadow-md shadow-[#007e42]/25 transition hover:bg-[#005f32] active:scale-[.98]"
         >
           Tiến hành thanh toán
@@ -630,11 +598,6 @@ export default function CartPage() {
     });
   }
 
-  function toggleAll() {
-    if (checkedIds.size === items.length) setCheckedIds(new Set());
-    else setCheckedIds(new Set(items.map((i) => i.productId)));
-  }
-
   // Bọc mỗi mutation để chặn double-click và hiển thị lỗi backend
   async function run(action: () => Promise<void>) {
     if (busy) return;
@@ -683,7 +646,6 @@ export default function CartPage() {
   const checkedItems = items.filter((i) => checkedIds.has(i.productId));
   const subtotal = checkedItems.reduce((sum, i) => sum + i.subtotal, 0);
   const checkedCount = checkedItems.reduce((sum, i) => sum + i.quantity, 0);
-  const allChecked = items.length > 0 && checkedIds.size === items.length;
 
   /* ── Chưa đăng nhập ── */
   if (!authLoading && !user) {
@@ -743,19 +705,6 @@ export default function CartPage() {
             <div className="flex min-w-0 flex-1 flex-col">
               {/* Toolbar — header cột, dính liền lên đầu danh sách */}
               <div className="flex items-center gap-3 rounded-t-xl border border-b-0 border-[#007e42] bg-[#007e42] px-4 py-2.5">
-                {/* Select all */}
-                <button
-                  onClick={toggleAll}
-                  aria-checked={allChecked}
-                  role="checkbox"
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
-                    allChecked
-                      ? "border-[#007e42] bg-[#007e42] text-white"
-                      : "border-gray-300 hover:border-[#007e42]"
-                  }`}
-                >
-                  {allChecked && <ICheck />}
-                </button>
                 <span className="text-xs font-semibold uppercase tracking-wide text-white">
                   Sản phẩm ({items.length})
                 </span>
@@ -803,6 +752,7 @@ export default function CartPage() {
                 <OrderSummary
                   subtotal={subtotal}
                   checkedCount={checkedCount}
+                  checkedIds={checkedItems.map((i) => i.productId)}
                 />
               </div>
             </div>
@@ -812,6 +762,7 @@ export default function CartPage() {
               <OrderSummary
                 subtotal={subtotal}
                 checkedCount={checkedCount}
+                checkedIds={checkedItems.map((i) => i.productId)}
               />
             </div>
           </div>

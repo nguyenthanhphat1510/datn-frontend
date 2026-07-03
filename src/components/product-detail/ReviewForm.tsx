@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createReview, uploadReviewImages } from "@/services/reviews";
 
 /* Bộ chọn sao click được (1..5). */
@@ -62,6 +62,19 @@ export default function ReviewForm({
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_IMAGES = 5;
+
+  // Thêm ảnh (gộp với ảnh đã chọn), giới hạn tối đa MAX_IMAGES.
+  function addFiles(picked: FileList | null) {
+    if (!picked) return;
+    setFiles((prev) => [...prev, ...Array.from(picked)].slice(0, MAX_IMAGES));
+  }
+
+  function removeFile(idx: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,21 +113,65 @@ export default function ReviewForm({
         className="mt-3 w-full resize-none rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#007e42]"
       />
 
-      <label className="mt-3 block text-xs font-medium text-gray-500">
-        Thêm ảnh (tối đa 5):
+      {/* Upload ảnh: nút thêm dạng ô nét đứt + preview thumbnail có nút xóa */}
+      <div className="mt-3">
+        <p className="mb-1.5 text-xs font-medium text-gray-500">
+          Thêm ảnh ({files.length}/{MAX_IMAGES})
+        </p>
+        {/* Input file thật — ẩn đi, mở qua nút */}
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           multiple
-          onChange={(e) =>
-            setFiles(Array.from(e.target.files ?? []).slice(0, 5))
-          }
-          className="mt-1 block w-full text-sm text-gray-600"
+          hidden
+          onChange={(e) => {
+            addFiles(e.target.files);
+            e.target.value = ""; // reset để chọn lại cùng ảnh được
+          }}
         />
-      </label>
-      {files.length > 0 && (
-        <p className="mt-1 text-xs text-gray-400">Đã chọn {files.length} ảnh</p>
-      )}
+        <div className="flex flex-wrap gap-2">
+          {files.map((file, idx) => (
+            <div
+              key={idx}
+              className="group relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200 bg-white"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={URL.createObjectURL(file)}
+                alt={`Ảnh ${idx + 1}`}
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removeFile(idx)}
+                aria-label="Xóa ảnh"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          ))}
+
+          {files.length < MAX_IMAGES && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-gray-300 text-gray-400 transition hover:border-[#007e42] hover:text-[#007e42]"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+              <span className="text-[10px] font-medium">Thêm ảnh</span>
+            </button>
+          )}
+        </div>
+      </div>
 
       {error && (
         <p className="mt-3 text-sm font-medium text-red-500">{error}</p>

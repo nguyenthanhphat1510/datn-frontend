@@ -5,19 +5,19 @@ import Link from "next/link";
 
 const products = [
   {
-    img: "/thuoc_tru_sau1.png",
+    img: "/thuoc_tru_sau11.png",
     label: "Thuốc trừ sâu",
     sub: "Diệt rầy, sâu cuốn lá",
     accent: "#10b981",
   },
   {
-    img: "/thuoc_tru_benh1.png",
+    img: "/thuoc_tru_benh11.png",
     label: "Thuốc trừ bệnh",
     sub: "Đặc trị đạo ôn, khô vằn",
     accent: "#059669",
   },
   {
-    img: "/thuoc_tru_co1.png",
+    img: "/thuoc_tru_co11.png",
     label: "Thuốc trừ cỏ",
     sub: "Sạch cỏ, an toàn lúa",
     accent: "#d97706",
@@ -196,7 +196,7 @@ export default function ThuocBVTVHero() {
                 return (
                   <div
                     key={product.label}
-                    className={`group/card absolute w-36 transition-all duration-500 ease-out hover:!z-30 sm:w-40 ${fan}`}
+                    className={`group/card absolute w-28 transition-all duration-500 ease-out hover:!z-30 sm:w-32 ${fan}`}
                   >
                     <div
                       className="relative cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10 backdrop-blur-sm shadow-[0_8px_28px_rgba(0,0,0,0.32)] transition-all duration-500 hover:-translate-y-2 hover:ring-emerald-300/50 hover:shadow-[0_18px_42px_rgba(0,0,0,0.45)]"

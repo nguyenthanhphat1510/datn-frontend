@@ -8,8 +8,6 @@ import { SHOP_LOCATION } from "@/lib/shop-location";
  * sửa bên kia.
  */
 
-export const FREE_SHIP_THRESHOLD = 500_000; // đơn >= ngưỡng này miễn phí ship
-
 const BASE_FEE = 15_000; // phí cho <= 5km (cũng là fallback khi thiếu toạ độ)
 const FREE_DISTANCE_KM = 5; // số km đầu tính phí base
 const FEE_PER_KM = 3_000; // phí mỗi km vượt FREE_DISTANCE_KM
@@ -35,20 +33,15 @@ export function haversineKm(a: LatLon, b: LatLon): number {
 }
 
 /**
- * Tính phí ship từ kho tới (lat, lon).
- * - subtotal >= FREE_SHIP_THRESHOLD → miễn phí.
+ * Tính phí ship từ kho tới (lat, lon). Luôn tính theo khoảng cách (không có
+ * ngưỡng miễn phí).
  * - thiếu lat/lon (địa chỉ cũ chưa resolve) → phí base (như trong 5km).
  * - còn lại: BASE_FEE + (ceil(km) - 5) * FEE_PER_KM, cap MAX_FEE.
  */
 export function calcShippingFee(
-  subtotal: number,
   lat?: number,
   lon?: number,
 ): { fee: number; distanceKm: number | null } {
-  if (subtotal >= FREE_SHIP_THRESHOLD) {
-    return { fee: 0, distanceKm: null };
-  }
-
   if (lat == null || lon == null) {
     return { fee: BASE_FEE, distanceKm: null };
   }

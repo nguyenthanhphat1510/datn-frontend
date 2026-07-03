@@ -84,19 +84,6 @@ function IconLeaf() {
   );
 }
 
-/** Lọ thuốc — gợi ý thuốc trị sâu bệnh */
-function IconBug() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
-      viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m8 2 1.88 1.88M14.12 3.88 16 2" />
-      <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" />
-      <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6Z" />
-      <path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4" />
-    </svg>
-  );
-}
 
 /** Tài liệu — nhãn nguồn cho câu trả lời kỹ thuật (lấy từ tài liệu đã upload) */
 function IconDoc() {
@@ -351,19 +338,32 @@ const welcomeMessage: Message = {
   time: "",
 };
 
-/* Nút gợi ý nhanh — câu chữ khớp với luật phân loại intent ở backend.
+/* Nút gợi ý nhanh — mỗi nút rơi ĐÚNG 1 nhánh intent ở backend.
+   `label` là chữ hiển thị, `query` là câu gửi đi (chọn cụm khớp keyword-rule
+   để backend phân loại chuẩn):
+     - "Kỹ thuật bón phân cho lúa"  → ky_thuat   (canh tác, cách làm)
+     - "Chẩn đoán bệnh lúa"          → trieu_chung (chẩn đoán qua triệu chứng)
+     - "Tư vấn thuốc trị sâu bệnh"   → san_pham   (tìm sản phẩm)
+   Nút có `promptText` KHÔNG gọi API — chỉ chèn lời bot nhắc người dùng mô tả
+   trước (vd chẩn đoán bệnh: phải có triệu chứng thì mới đoán được, không đoán
+   khi người dùng chưa mô tả gì).
    Hiện dưới tin chào đầu, ẩn đi sau khi người dùng bắt đầu chat. */
-const quickReplies = [
-  "Tư vấn phân bón",
-  "Thuốc trị sâu bệnh",
-  "Chẩn đoán bệnh lúa",
-  "Liên hệ nhân viên",
+const quickReplies: { label: string; query: string; promptText?: string }[] = [
+  { label: "Kỹ thuật bón phân", query: "Kỹ thuật bón phân cho lúa" },
+  {
+    label: "Chẩn đoán bệnh lúa",
+    query: "Chẩn đoán bệnh lúa",
+    promptText:
+      "Bạn mô tả giúp mình dấu hiệu bất thường trên cây lúa nhé (vd: lá có vết hình thoi màu nâu, hạt lép đen, mép lá khô cháy...). Hoặc bấm biểu tượng ghim ở góc trái ô nhập để gửi ảnh lá lúa, mình sẽ chẩn đoán ngay!",
+  },
+  { label: "Tư vấn thuốc BVTV", query: "Tư vấn thuốc trị sâu bệnh" },
 ];
 
-/* Gợi ý hiển thị ngoài nút — kèm icon, xếp nhỏ dần từ trên xuống (kiểu bậc thang) */
+/* Gợi ý hiển thị ngoài nút (khi chat chưa mở) — kèm icon. `query` khớp intent
+   backend giống quickReplies. */
 const hintSuggestions = [
-  { Icon: IconLeaf, label: "Tư vấn phân bón" },
-  { Icon: IconBug, label: "Thuốc trị sâu bệnh" },
+  { label: "Kỹ thuật bón phân", query: "Kỹ thuật bón phân cho lúa" },
+  { label: "Tư vấn thuốc BVTV", query: "Tư vấn thuốc trị sâu bệnh" },
 ];
 
 /* Mỗi cấp nhỏ dần một chút: chiều rộng, padding, cỡ chữ */
@@ -393,6 +393,15 @@ export default function ChatbotWidget() {
 
   function nowTime() {
     return new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  /* Chèn 1 lời bot nhắc người dùng mô tả trước — KHÔNG gọi API. Dùng cho nút
+     "Chẩn đoán bệnh lúa": chưa có triệu chứng thì không thể chẩn đoán. */
+  function showBotPrompt(text: string) {
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), role: "bot", text, time: nowTime() },
+    ]);
   }
 
   async function handleSend(text: string) {
@@ -578,21 +587,18 @@ export default function ChatbotWidget() {
           </div>
 
           {/* Các thẻ gợi ý — nhỏ dần từ trên xuống, căn lề phải về phía nút */}
-          {hintSuggestions.map(({ Icon, label }, i) => (
+          {hintSuggestions.map(({ label, query }, i) => (
             <button
               key={label}
               type="button"
               onClick={() => {
                 setOpen(true);
                 setHintOpen(false);
-                handleSend(label);
+                handleSend(query);
               }}
               style={{ animation: `slideUpFade 0.35s ease both`, animationDelay: `${0.06 * (i + 1)}s` }}
-              className={`group flex items-center gap-2.5 rounded-full bg-white font-semibold text-[#007e42] shadow-md ring-1 ring-[#007e42]/25 transition hover:-translate-x-0.5 hover:bg-[#007e42] hover:text-white hover:ring-[#007e42] ${hintTiers[i] ?? hintTiers[hintTiers.length - 1]}`}
+              className={`group flex items-center justify-center rounded-full bg-white font-semibold text-[#007e42] shadow-md ring-1 ring-[#007e42]/25 transition hover:-translate-x-0.5 hover:bg-[#007e42] hover:text-white hover:ring-[#007e42] ${hintTiers[i] ?? hintTiers[hintTiers.length - 1]}`}
             >
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#007e42]/10 text-[#007e42] transition group-hover:bg-white/20 group-hover:text-white">
-                <Icon />
-              </span>
               <span className="truncate">{label}</span>
             </button>
           ))}
@@ -747,11 +753,11 @@ export default function ChatbotWidget() {
             {/* Nút gợi ý dưới tin chào — chỉ hiện khi chưa bắt đầu chat */}
             {messages.length === 1 && !loading && (
               <div className="flex flex-wrap gap-2 pl-9">
-                {quickReplies.map((label) => (
+                {quickReplies.map(({ label, query, promptText }) => (
                   <button
                     key={label}
                     type="button"
-                    onClick={() => handleSend(label)}
+                    onClick={() => (promptText ? showBotPrompt(promptText) : handleSend(query))}
                     className="rounded-full border border-[#007e42] bg-white px-4 py-2 text-sm font-medium text-[#007e42] shadow-sm transition hover:bg-[#007e42]! hover:text-white!"
                   >
                     {label}

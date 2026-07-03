@@ -9,14 +9,11 @@ import { Stars } from "@/components/Stars";
 import {
   IChevronDown,
   IFilter,
-  IGrid,
-  IList,
   ILeaf,
 } from "@/components/icons";
-import { ProductCard, ProductRow } from "./ProductItem";
+import { ProductCard } from "./ProductItem";
 
 type SortOption = "mac-dinh" | "gia-tang" | "gia-giam" | "moi-nhat";
-type ViewMode = "grid" | "list";
 
 const PAGE_SIZE = 8;
 const PRICE_MIN = 0;
@@ -324,7 +321,6 @@ export default function ProductList() {
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY);
   const [priceRange, setPriceRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
   const [sort, setSort] = useState<SortOption>("mac-dinh");
-  const [view, setView] = useState<ViewMode>("grid");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -497,23 +493,6 @@ export default function ProductList() {
                 )}
               </div>
 
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setView("grid")}
-                  title="Lưới"
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition ${view === "grid" ? "bg-[#007e42] text-white" : "text-gray-400 hover:bg-gray-100"}`}
-                >
-                  <IGrid />
-                </button>
-                <button
-                  onClick={() => setView("list")}
-                  title="Danh sách"
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition ${view === "list" ? "bg-[#007e42] text-white" : "text-gray-400 hover:bg-gray-100"}`}
-                >
-                  <IList />
-                </button>
-              </div>
-
               <CustomSelect<SortOption>
                 value={sort}
                 options={SORT_OPTIONS}
@@ -556,7 +535,7 @@ export default function ProductList() {
                   Đặt lại bộ lọc
                 </button>
               </div>
-            ) : view === "grid" ? (
+            ) : (
               <div
                 key={`grid-${page}-${activeCategory}-${sort}-${search}`}
                 className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-[fadeInUp_0.35s_ease-out]"
@@ -568,21 +547,6 @@ export default function ProductList() {
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
                     <ProductCard product={p} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div
-                key={`list-${page}-${activeCategory}-${sort}-${search}`}
-                className="flex flex-col gap-3 animate-[fadeInUp_0.35s_ease-out]"
-              >
-                {displayed.map((p, i) => (
-                  <div
-                    key={p._id}
-                    className="animate-[fadeInUp_0.4s_ease-out_both]"
-                    style={{ animationDelay: `${i * 60}ms` }}
-                  >
-                    <ProductRow product={p} />
                   </div>
                 ))}
               </div>

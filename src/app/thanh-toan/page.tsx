@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import CheckoutPage from "@/components/checkout/CheckoutPage";
 
 export const metadata: Metadata = {
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function ThanhToanPage() {
-  return <CheckoutPage />;
+  // Suspense: CheckoutPage dùng useSearchParams (đọc ?items=) — App Router yêu cầu.
+  return (
+    <Suspense>
+      <CheckoutPage />
+    </Suspense>
+  );
 }

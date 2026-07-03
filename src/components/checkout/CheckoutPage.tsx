@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { fmt } from "@/lib/format";
@@ -195,8 +195,15 @@ function AddressRadio({
 ───────────────────────────────────────── */
 export default function CheckoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { cart, loading: cartLoading, refresh } = useCart();
+
+  // Sản phẩm được chọn từ giỏ (?items=id1,id2). Rỗng = đặt cả giỏ.
+  const selectedProductIds = useMemo(() => {
+    const raw = searchParams.get("items");
+    return raw ? raw.split(",").filter(Boolean) : [];
+  }, [searchParams]);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addrLoading, setAddrLoading] = useState(true);
@@ -215,7 +222,12 @@ export default function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const items = cart?.items ?? [];
+  // Chỉ hiển thị & đặt các sản phẩm đã chọn từ giỏ; rỗng = cả giỏ.
+  const allItems = cart?.items ?? [];
+  const items =
+    selectedProductIds.length > 0
+      ? allItems.filter((i) => selectedProductIds.includes(i.productId))
+      : allItems;
 
   /* ── Chặn chưa đăng nhập ── */
   useEffect(() => {
@@ -268,7 +280,6 @@ export default function CheckoutPage() {
       : { lat: selectedAddr?.lat, lon: selectedAddr?.lon };
 
   const { fee: shipping, distanceKm } = calcShippingFee(
-    subtotal,
     latLon.lat,
     latLon.lon,
   );
@@ -294,10 +305,15 @@ export default function CheckoutPage() {
     // COD, VNPay và MoMo đều được gửi lên backend.
     const paymentMethod = payMethod; // "cod" | "vnpay" | "momo"
 
+    // Gửi kèm danh sách sản phẩm đã chọn (nếu có) để backend chỉ đặt các item đó.
+    const productIds =
+      selectedProductIds.length > 0 ? selectedProductIds : undefined;
+
     let body: CreateOrderInput;
     if (mode === "select" && selectedId) {
       body = {
         addressId: selectedId,
+        productIds,
         note: note.trim() || undefined,
         paymentMethod,
       };
@@ -321,6 +337,7 @@ export default function CheckoutPage() {
           lat: resolved?.lat,
           lon: resolved?.lon,
         },
+        productIds,
         note: note.trim() || undefined,
         paymentMethod,
       };
@@ -520,15 +537,9 @@ export default function CheckoutPage() {
                         Cách kho ~{distanceKm.toFixed(1)} km
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-                        Phí ship: {shipping === 0 ? "Miễn phí" : fmt(shipping)}
+                        Phí ship: {fmt(shipping)}
                       </span>
                     </div>
-                  )}
-                  {distanceKm == null && shipping === 0 && (
-                    <span className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-                      <ICheck />
-                      Miễn phí vận chuyển
-                    </span>
                   )}
                 </div>
               )}
@@ -635,15 +646,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Phí vận chuyển</span>
-                  {shipping === 0 ? (
-                    <span className="font-medium text-emerald-600">
-                      Miễn phí
-                    </span>
-                  ) : (
-                    <span className="font-medium text-gray-800">
-                      {fmt(shipping)}
-                    </span>
-                  )}
+                  <span className="font-medium text-gray-800">
+                    {fmt(shipping)}
+                  </span>
                 </div>
               </div>
 

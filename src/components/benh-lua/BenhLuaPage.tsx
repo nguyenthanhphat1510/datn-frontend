@@ -379,12 +379,21 @@ export default function BenhLuaPage() {
                             </svg>
                             Thuốc đặc trị gợi ý
                           </h3>
-                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                          {/* ≤4 SP: lưới gọn. >4 SP: cuộn ngang, không dàn hết ra. */}
+                          <div
+                            className={
+                              recs.length > 4
+                                ? "-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
+                                : "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                            }
+                          >
                             {recs.map((p) => (
                               <Link
                                 key={p._id}
                                 href={`/san-pham/${p._id}`}
-                                className="group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#007e42] hover:shadow-lg"
+                                className={`group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#007e42] hover:shadow-lg ${
+                                  recs.length > 4 ? "w-36 shrink-0 snap-start sm:w-40" : ""
+                                }`}
                               >
                                 {/* Ảnh trên */}
                                 <div className="relative aspect-square w-full bg-white">

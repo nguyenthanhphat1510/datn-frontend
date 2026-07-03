@@ -42,6 +42,8 @@ export interface Order {
 export interface CreateOrderInput {
   addressId?: string;
   shippingAddress?: ShippingAddressInput;
+  /** Chỉ đặt các sản phẩm này trong giỏ (theo productId). Bỏ trống = cả giỏ. */
+  productIds?: string[];
   note?: string;
   paymentMethod?: PaymentMethod;
 }

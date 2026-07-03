@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fmt } from "@/lib/format";
-import { getOrders, type Order } from "@/services/orders";
+import { getOrders, type Order, type OrderItem } from "@/services/orders";
 import { getReviewedProductIds } from "@/services/reviews";
 import ReviewForm from "@/components/product-detail/ReviewForm";
 
-/* Map trạng thái đơn → nhãn tiếng Việt + màu badge (khớp OrderStatus backend). */
+/* Map trạng thái đơn → nhãn tiếng Việt + màu badge trắng (nổi trên header xanh). */
 const STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: "Chờ xác nhận", cls: "bg-white text-amber-700" },
   confirmed: { label: "Đang xử lý", cls: "bg-white text-blue-700" },
@@ -18,11 +18,11 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "Đã hủy", cls: "bg-white text-red-600" },
 };
 
-/* Nhãn phương thức thanh toán (khớp PaymentMethod backend). */
+/* Nhãn phương thức thanh toán ngắn gọn (khớp PaymentMethod backend). */
 const PAY_METHOD: Record<string, string> = {
-  cod: "Thanh toán khi nhận hàng (COD)",
+  cod: "COD",
   vnpay: "VNPAY",
-  momo: "Ví MoMo",
+  momo: "MoMo",
 };
 
 /* Trạng thái thanh toán → nhãn + màu badge (khớp PaymentStatus backend). */
@@ -36,29 +36,10 @@ function PaymentBadge({ status }: { status?: string }) {
   if (!status) return null;
   const s = PAY_STATUS[status] ?? { label: status, cls: "bg-gray-100 text-gray-600" };
   return (
-    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.cls}`}>
+    <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${s.cls}`}>
       {s.label}
     </span>
   );
-}
-
-/* Các bước tiến trình đơn (thanh stepper). */
-const STEPS = ["Chờ xác nhận", "Đang xử lý", "Giao hàng", "Hoàn thành"];
-
-/* Trạng thái backend → bước hiện tại (1-based). cancelled = 0 (ẩn stepper). */
-function statusToStep(status: string): number {
-  switch (status) {
-    case "pending":
-      return 1;
-    case "confirmed":
-      return 2;
-    case "shipping":
-      return 3;
-    case "delivered":
-      return 4;
-    default:
-      return 0; // cancelled / unknown
-  }
 }
 
 /* Các tab lọc trạng thái (kiểu Shopee). "all" = tất cả. */
@@ -71,211 +52,104 @@ const TABS: { key: string; label: string }[] = [
   { key: "cancelled", label: "Đã hủy" },
 ];
 
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS[status] ?? {
-    label: status,
-    cls: "bg-gray-100 text-gray-600",
-  };
-  return (
-    <span
-      className={`rounded-full px-3 py-1 text-xs font-semibold ${s.cls}`}
-    >
-      {s.label}
-    </span>
-  );
-}
-
 /* ─────────────────────────────────────────
-   Thanh tiến trình 4 bước (stepper)
+   Một dòng sản phẩm trong đơn (ảnh + tên + SL + giá) — hiện ngay trên card.
+   Đơn đã giao thì có nút đánh giá inline (giống Shopee).
 ───────────────────────────────────────── */
-function OrderStepper({ status }: { status: string }) {
-  const current = statusToStep(status);
-  if (current === 0) return null;
-
-  return (
-    <div className="flex items-start">
-      {STEPS.map((label, idx) => {
-        const step = idx + 1;
-        const done = step <= current;
-        const lineDone = step < current;
-        const isLast = step === STEPS.length;
-        return (
-          <div key={label} className="flex flex-1 flex-col items-center">
-            <div className="flex w-full items-center">
-              {/* chấm số */}
-              <div className="flex flex-1 items-center">
-                <div
-                  className={`mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
-                    done
-                      ? "bg-[#007e42] text-white"
-                      : "bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  {step}
-                </div>
-                {/* đường nối sang bước sau */}
-                {!isLast && (
-                  <div
-                    className={`h-0.5 flex-1 ${
-                      lineDone ? "bg-[#007e42]" : "bg-gray-200"
-                    }`}
-                  />
-                )}
-              </div>
-            </div>
-            <span
-              className={`mt-2 text-center text-[11px] font-medium ${
-                done ? "text-[#007e42]" : "text-gray-700"
-              }`}
-            >
-              {label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────
-   Một card đơn hàng — chỉ tóm tắt, bấm để xem chi tiết
-───────────────────────────────────────── */
-function OrderCard({
-  order,
-  index,
-  onView,
+function OrderItemRow({
+  item,
+  orderId,
+  delivered,
+  reviewed,
+  onReviewed,
 }: {
-  order: Order;
-  index: number;
-  onView: () => void;
+  item: OrderItem;
+  orderId: string;
+  delivered: boolean;
+  reviewed: boolean;
+  onReviewed: () => void;
 }) {
-  const createdAt = new Date(order.createdAt).toLocaleString("vi-VN");
-  const cancelled = order.status === "cancelled";
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-md shadow-gray-200/60">
-      {/* Header: icon + mã đơn + ngày + trạng thái + nút xem */}
-      <div className="-mx-5 -mt-5 flex flex-wrap items-center justify-between gap-3 bg-[#007e42] px-5 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.8}
-              stroke="currentColor"
-              className="h-6 w-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-              />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <p className="text-base font-extrabold text-white">
-              Đơn Hàng {index}
-            </p>
-            <p className="mt-0.5 text-xs text-white/70">{createdAt}</p>
-          </div>
+    <div className="flex flex-col border-b border-gray-100 py-3 last:border-b-0">
+      <div className="flex gap-3">
+        {/* Ảnh */}
+        <Link
+          href={`/san-pham/${item.productId}`}
+          className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white"
+        >
+          {item.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              className="h-full w-full object-contain p-1"
+            />
+          ) : null}
+        </Link>
+
+        {/* Tên + số lượng */}
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/san-pham/${item.productId}`}
+            className="line-clamp-2 text-sm font-medium text-gray-800 transition hover:text-[#007e42]"
+          >
+            {item.name}
+          </Link>
+          <p className="mt-1 text-xs text-gray-400">x{item.quantity}</p>
+
+          {/* Đơn đã giao → nút đánh giá / trạng thái đã đánh giá */}
+          {delivered &&
+            (reviewed ? (
+              <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-gray-400">
+                ✓ Đã đánh giá
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                className="mt-1.5 inline-flex items-center gap-1 rounded border border-[#007e42] px-2.5 py-0.5 text-xs font-semibold text-[#007e42] transition hover:bg-[#007e42] hover:text-white"
+              >
+                ★ {open ? "Đóng" : "Đánh giá"}
+              </button>
+            ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <StatusBadge status={order.status} />
-          <button
-            type="button"
-            onClick={onView}
-            aria-label="Xem chi tiết đơn hàng"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/40 text-white transition hover:bg-white/15"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.8}
-              stroke="currentColor"
-              className="h-5 w-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-          </button>
+        {/* Giá */}
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-semibold text-[#007e42]">{fmt(item.price)}</p>
         </div>
       </div>
 
-      {/* Thanh tiến trình */}
-      {!cancelled && (
-        <div className="mt-5">
-          <OrderStepper status={order.status} />
+      {/* Form đánh giá inline */}
+      {delivered && open && !reviewed && (
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <ReviewForm
+            orderId={orderId}
+            productId={item.productId}
+            onDone={() => {
+              setOpen(false);
+              onReviewed();
+            }}
+          />
         </div>
       )}
-
-      {/* Footer: địa chỉ + thanh toán + tổng tiền */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
-        <span className="flex items-center gap-1.5 text-sm text-gray-500">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="h-4 w-4 text-[#007e42]"
-          >
-            <path
-              fillRule="evenodd"
-              d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
-              clipRule="evenodd"
-            />
-          </svg>
-          {order.shippingAddress?.address || "—"}
-        </span>
-        <span className="text-sm text-gray-600">
-          Tổng tiền:{" "}
-          <span className="text-base font-extrabold text-[#007e42]">
-            {fmt(order.total)}
-          </span>
-        </span>
-      </div>
-
-      {/* Phương thức + trạng thái thanh toán */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-        <span>
-          Thanh toán:{" "}
-          <span className="font-semibold text-gray-700">
-            {PAY_METHOD[order.paymentMethod ?? "cod"] ?? order.paymentMethod}
-          </span>
-        </span>
-        <PaymentBadge status={order.paymentStatus} />
-      </div>
     </div>
   );
 }
 
 /* ─────────────────────────────────────────
-   Modal chi tiết đơn hàng (chỉ hiện khi bấm xem)
+   Một card đơn hàng kiểu Shopee — item hiện ngay trên card.
 ───────────────────────────────────────── */
-function OrderDetailModal({
-  order,
-  index,
-  onClose,
-}: {
-  order: Order;
-  index: number;
-  onClose: () => void;
-}) {
+function OrderCard({ order, index }: { order: Order; index: number }) {
+  const status = STATUS[order.status] ?? { label: order.status, cls: "text-gray-500" };
   const delivered = order.status === "delivered";
+  const createdAt = new Date(order.createdAt).toLocaleDateString("vi-VN");
+  const totalQty = order.items.reduce((s, i) => s + i.quantity, 0);
 
   // productId đã đánh giá trong đơn này → ẩn nút "Đánh giá"
   const [reviewedIds, setReviewedIds] = useState<string[]>([]);
-  // productId đang mở form đánh giá (null = không mở)
-  const [reviewing, setReviewing] = useState<string | null>(null);
 
   const loadReviewed = useCallback(() => {
     if (!delivered) return;
@@ -284,222 +158,72 @@ function OrderDetailModal({
       .catch(() => setReviewedIds([]));
   }, [delivered, order._id]);
 
-  /* Đóng modal khi nhấn ESC. */
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  /* Tải danh sách sản phẩm đã đánh giá khi mở đơn đã giao. */
   useEffect(() => {
     loadReviewed();
   }, [loadReviewed]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-full w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header modal */}
-        <div className="flex items-center justify-between bg-[#007e42] px-6 py-4">
-          <h2 className="flex items-center gap-2 text-lg font-extrabold text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.8}
-              stroke="currentColor"
-              className="h-5 w-5 text-white"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-              />
-            </svg>
-            Chi Tiết Đơn Hàng <span className="text-white/80">{index}</span>
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Đóng"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-white transition hover:bg-white/15"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="h-5 w-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+    <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+      {/* Header xanh: mã đơn + ngày + badge thanh toán bên trái, trạng thái bên phải */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-[#007e42] px-4 py-2.5">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-bold text-white">Đơn hàng #{index}</span>
+          <span className="text-xs text-white/60">{createdAt}</span>
+          <PaymentBadge status={order.paymentStatus} />
         </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.cls}`}>
+          {status.label}
+        </span>
+      </div>
 
-        <div className="space-y-6 px-6 py-5">
-          {/* Hai cột: khách hàng + giao hàng */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-300 bg-gray-200 p-4">
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#005f32]">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Thông tin khách hàng
-              </p>
-              <p className="mt-3 text-sm text-gray-600">
-                <span className="font-semibold text-gray-700">Tên:</span>{" "}
-                {order.shippingAddress?.fullName || "—"}
-              </p>
-              <p className="mt-1 text-sm text-gray-600">
-                <span className="font-semibold text-gray-700">SĐT:</span>{" "}
-                {order.shippingAddress?.phone || "—"}
-              </p>
-            </div>
+      {/* Danh sách sản phẩm — hiện ngay trên card */}
+      <div className="px-4">
+        {order.items.map((item) => (
+          <OrderItemRow
+            key={item.productId}
+            item={item}
+            orderId={order._id}
+            delivered={delivered}
+            reviewed={reviewedIds.includes(item.productId)}
+            onReviewed={loadReviewed}
+          />
+        ))}
+      </div>
 
-            <div className="rounded-xl border border-gray-300 bg-gray-200 p-4">
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#005f32]">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
-                  <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25zM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 116 0h3a.75.75 0 00.75-.75V15z" />
-                  <path d="M8.25 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0zM15.75 6.75a.75.75 0 00-.75.75v11.25c0 .087.015.17.042.248a3 3 0 015.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 00-3.732-10.104 1.837 1.837 0 00-1.47-.725H15.75z" />
-                  <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
-                </svg>
-                Giao hàng
-              </p>
-              <p className="mt-3 text-sm text-gray-600">
-                <span className="font-semibold text-gray-700">Trạng thái:</span>{" "}
-                <span className="font-semibold text-[#005f32]">
-                  {(STATUS[order.status] ?? { label: order.status }).label}
-                </span>
-              </p>
-              <p className="mt-1 text-sm text-gray-600">
-                <span className="font-semibold text-gray-700">Địa chỉ:</span>{" "}
-                {order.shippingAddress?.address || "—"}
-              </p>
-              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-600">
-                <span className="font-semibold text-gray-700">Thanh toán:</span>{" "}
-                {PAY_METHOD[order.paymentMethod ?? "cod"] ?? order.paymentMethod}
-                <PaymentBadge status={order.paymentStatus} />
-              </p>
-            </div>
-          </div>
+      {/* Dải giao hàng: địa chỉ + phương thức thanh toán (1 dòng gọn) */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
+        <span className="inline-flex min-w-0 items-center gap-1">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 shrink-0 text-[#007e42]">
+            <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+          </svg>
+          <span className="truncate">
+            {order.shippingAddress?.fullName} · {order.shippingAddress?.phone} · {order.shippingAddress?.address || "—"}
+          </span>
+        </span>
+        <span className="ml-auto shrink-0 rounded bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
+          {PAY_METHOD[order.paymentMethod ?? "cod"] ?? order.paymentMethod}
+        </span>
+      </div>
 
-          {/* Danh sách sản phẩm */}
-          <div>
-            <h3 className="mb-3 text-base font-extrabold text-gray-800">
-              Sản Phẩm Đã Đặt
-            </h3>
-            <div className="flex flex-col gap-3">
-              {order.items.map((item) => {
-                const reviewed = reviewedIds.includes(item.productId);
-                const isOpen = reviewing === item.productId;
-                return (
-                  <div
-                    key={item.productId}
-                    className="rounded-xl border-2 border-gray-300 p-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
-                        {item.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="h-full w-full object-contain p-1"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-base font-bold text-gray-800">
-                          {item.name}
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-gray-600">
-                          {fmt(item.price)} x {item.quantity}
-                        </p>
-                        {/* Đơn đã giao → đánh giá; đã đánh giá thì hiện trạng thái */}
-                        {delivered &&
-                          (reviewed ? (
-                            <span className="mt-2 inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
-                              ✓ Đã đánh giá
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setReviewing(isOpen ? null : item.productId)
-                              }
-                              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[#007e42] px-3 py-1 text-xs font-semibold text-[#007e42] transition hover:bg-[#007e42] hover:text-white"
-                            >
-                              ★ {isOpen ? "Đóng" : "Đánh giá"}
-                            </button>
-                          ))}
-                      </div>
-                      <span className="shrink-0 text-base font-bold text-[#005f32]">
-                        {fmt(item.subtotal)}
-                      </span>
-                    </div>
+      {/* Ghi chú nếu có */}
+      {order.note && (
+        <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
+          <span className="font-semibold text-gray-600">Ghi chú:</span> {order.note}
+        </div>
+      )}
 
-                    {/* Form đánh giá inline cho item này */}
-                    {delivered && isOpen && !reviewed && (
-                      <div className="mt-4 rounded-xl border border-gray-300 bg-gray-50 p-4">
-                        <ReviewForm
-                          orderId={order._id}
-                          productId={item.productId}
-                          onDone={() => {
-                            setReviewing(null);
-                            loadReviewed();
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Ghi chú nếu có */}
-          {order.note && (
-            <p className="rounded-xl bg-gray-100 px-4 py-3 text-sm text-gray-600">
-              <span className="font-semibold">Ghi chú:</span> {order.note}
-            </p>
-          )}
-
-          {/* Tổng thanh toán */}
-          <div className="flex items-center justify-between rounded-xl bg-amber-100 px-5 py-4">
-            <span className="text-sm font-bold text-gray-700">
-              Tổng thanh toán:
-            </span>
-            <span className="text-xl font-extrabold text-[#005f32]">
-              {fmt(order.total)}
-            </span>
-          </div>
+      {/* Footer: phí ship + tổng tiền */}
+      <div className="flex flex-col items-end gap-0.5 border-t border-gray-100 bg-gray-50/60 px-4 py-3">
+        <span className="text-xs text-gray-400">
+          Phí vận chuyển: {order.shippingFee > 0 ? fmt(order.shippingFee) : "Miễn phí"}
+        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm text-gray-500">
+            Thành tiền ({totalQty} sản phẩm):
+          </span>
+          <span className="text-lg font-extrabold text-[#007e42]">
+            {fmt(order.total)}
+          </span>
         </div>
       </div>
     </div>
@@ -517,7 +241,6 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("all");
-  const [selected, setSelected] = useState<Order | null>(null);
 
   /* ── Chặn chưa đăng nhập ── */
   useEffect(() => {
@@ -661,21 +384,11 @@ export default function OrdersPage() {
                 key={order._id}
                 order={order}
                 index={orderNumber.get(order._id) ?? 0}
-                onView={() => setSelected(order)}
               />
             ))}
           </div>
         )}
       </div>
-
-      {/* Modal chi tiết — chỉ hiện khi bấm xem một đơn */}
-      {selected && (
-        <OrderDetailModal
-          order={selected}
-          index={orderNumber.get(selected._id) ?? 0}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </section>
   );
 }

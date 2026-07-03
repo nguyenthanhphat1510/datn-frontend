@@ -9,8 +9,8 @@ import {
   fetchSubcategories,
   fetchManufacturers,
 } from "@/services/products";
-import { ProductCard, ProductRow } from "@/components/home/ProductItem";
-import { ILeaf, ISearch, IGrid, IList, IFilter, IHome } from "@/components/icons";
+import { ProductCard } from "@/components/home/ProductItem";
+import { ILeaf, ISearch, IFilter, IHome } from "@/components/icons";
 import ThuocBVTVHero from "./ThuocBVTVHero";
 
 const PAGE_SIZE = 8;
@@ -19,7 +19,6 @@ const PRICE_MAX = 500_000;
 const THUOC_BVTV_SLUG = "thuoc-bvtv";
 
 type SortOption = "mac-dinh" | "gia-tang" | "gia-giam";
-type ViewMode = "grid" | "list";
 
 export default function ThuocBVTVPage() {
   /* ── Catalog state ── */
@@ -36,7 +35,6 @@ export default function ThuocBVTVPage() {
   const [search, setSearch] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
   const [sortBy, setSortBy] = useState<SortOption>("mac-dinh");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -363,23 +361,6 @@ export default function ThuocBVTVPage() {
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                <div className="bg-gray-50 border border-gray-100 p-0.5 rounded-xl flex">
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={`p-1.5 rounded-lg transition ${viewMode === "grid" ? "bg-white text-[#007e42] shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
-                    title="Lưới"
-                  >
-                    <IGrid />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`p-1.5 rounded-lg transition ${viewMode === "list" ? "bg-white text-[#007e42] shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
-                    title="Danh sách"
-                  >
-                    <IList />
-                  </button>
-                </div>
-
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -441,19 +422,10 @@ export default function ThuocBVTVPage() {
             )}
 
             {/* Grid */}
-            {!loading && !error && total > 0 && viewMode === "grid" && (
+            {!loading && !error && total > 0 && (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {displayed.map((p) => (
                   <ProductCard key={p._id} product={p} />
-                ))}
-              </div>
-            )}
-
-            {/* List */}
-            {!loading && !error && total > 0 && viewMode === "list" && (
-              <div className="flex flex-col gap-3">
-                {displayed.map((p) => (
-                  <ProductRow key={p._id} product={p} />
                 ))}
               </div>
             )}
