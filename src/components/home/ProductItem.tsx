@@ -61,14 +61,14 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* Image area */}
-      <div className="relative flex h-64 items-center justify-center overflow-hidden">
+      <div className="relative flex h-40 items-center justify-center overflow-hidden sm:h-64">
         <div className="relative flex h-full w-full items-center justify-center transition-transform duration-300 group-hover:-translate-y-2">
           <ProductImageBox product={product} size={64} />
         </div>
       </div>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
         <span className="line-clamp-2 text-sm font-bold uppercase leading-snug text-gray-800 transition group-hover:text-[#007e42] min-h-[2.5rem]">
           {product.name}
         </span>

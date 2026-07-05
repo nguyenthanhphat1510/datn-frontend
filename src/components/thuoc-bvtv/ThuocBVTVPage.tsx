@@ -389,9 +389,9 @@ export default function ThuocBVTVPage() {
 
             {/* Loading */}
             {loading && !error && (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                  <div key={i} className="h-96 animate-pulse rounded-xl border border-gray-300/50 bg-white/40" />
+                  <div key={i} className="h-64 sm:h-96 animate-pulse rounded-xl border border-gray-300/50 bg-white/40" />
                 ))}
               </div>
             )}
@@ -424,7 +424,7 @@ export default function ThuocBVTVPage() {
 
             {/* Grid */}
             {!loading && !error && total > 0 && (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {displayed.map((p) => (
                   <ProductCard key={p._id} product={p} />
                 ))}

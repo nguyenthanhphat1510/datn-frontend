@@ -200,7 +200,7 @@ export default function UserMenu({ variant, onNavigate }: Props) {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-semibold text-red-200 transition hover:bg-white/15"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-semibold text-white/90 transition hover:bg-white/15 hover:text-red-200"
         >
           <IconLogout />
           Đăng xuất

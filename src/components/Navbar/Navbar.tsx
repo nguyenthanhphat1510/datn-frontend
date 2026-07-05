@@ -153,7 +153,7 @@ function SearchBar({ className = "" }: { className?: string }) {
 
   const phrases = [
     "Tìm kiếm phân bón...",
-    "Tìm kiếm thuốc bảo vệ thực vật...",
+    "Tìm kiếm thuốc BVTV...",
     "Tìm kiếm hạt giống...",
     "Tìm kiếm dụng cụ nông nghiệp..."
   ];
@@ -368,10 +368,13 @@ export default function Navbar() {
             aria-label="Giỏ hàng"
             className="relative flex h-10 items-center justify-center gap-2 rounded-full border border-transparent bg-transparent px-4 text-sm font-medium text-white/90 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
           >
-            <span className="relative">
+            <span id="cart-icon-target" className="relative">
               <IconCart />
               {itemCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#007e42]">
+                <span
+                  key={itemCount}
+                  className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-[#007e42] animate-[cartBadgePop_0.4s_ease-out]"
+                >
                   {itemCount}
                 </span>
               )}
@@ -384,6 +387,7 @@ export default function Navbar() {
         {/* ── Hamburger — mobile ── */}
         <button
           type="button"
+          id="cart-icon-fallback"
           onClick={() => setMenuOpen((prev) => !prev)}
           className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/25 bg-white/15 text-white transition hover:bg-white/30 md:hidden"
           aria-expanded={menuOpen}
@@ -398,10 +402,10 @@ export default function Navbar() {
         <div className="border-t border-[#005f32] bg-[#006838] md:hidden">
           <div className="mx-auto w-full max-w-7xl px-6 py-4">
             {/* Search */}
-            <SearchBar className="mb-4 flex" />
+            <SearchBar className="mb-3 flex" />
 
             {/* Nav links */}
-            <nav className="mb-4 flex flex-col gap-1">
+            <nav className="mb-3 flex flex-col gap-0.5 border-b border-white/10 pb-3">
               {leftLinks.map(({ label, href, Icon }) => (
                 <Link
                   key={href}
@@ -418,11 +422,11 @@ export default function Navbar() {
             </nav>
 
             {/* Action buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2">
               <Link
                 href="/gio-hang"
                 onClick={() => setMenuOpen(false)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/15 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/25"
+                className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-white/25 bg-white/15 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/25"
               >
                 <IconCart />
                 Giỏ hàng

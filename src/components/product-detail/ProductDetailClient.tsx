@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Product, Review } from "@/types/product";
@@ -12,6 +12,7 @@ import { fetchProducts, getProduct } from "@/services/products";
 import { getProductReviews } from "@/services/reviews";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { flyToCart } from "@/lib/fly-to-cart";
 
 type Tab = "mo-ta" | "huong-dan" | "thanh-phan";
 
@@ -35,6 +36,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [activeTab, setActiveTab] = useState<Tab>("mo-ta");
   const [carted, setCarted] = useState(false);
   const [adding, setAdding] = useState(false);
+  const mainImageRef = useRef<HTMLImageElement>(null);
   const [cartError, setCartError] = useState("");
   const [related, setRelated] = useState<Product[]>([]);
 
@@ -94,6 +96,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     }
     setAdding(true);
     setCartError("");
+    // Bay ảnh vào giỏ ngay khi bấm để hiệu ứng mượt, không đợi mạng
+    flyToCart(mainImageRef.current, images[activeImage]?.url);
     try {
       await addToCart(product._id, qty);
       setCarted(true);
@@ -144,6 +148,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               {images.length > 0 ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
+                  ref={mainImageRef}
                   src={images[activeImage].url}
                   alt={product.name}
                   className="relative z-[1] h-full w-full object-contain p-4"
@@ -434,7 +439,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             <h2 className="-mx-6 -mt-6 mb-6 bg-[#007e42] px-6 py-3 text-lg font-extrabold uppercase text-white sm:text-xl">
               Sản phẩm liên quan
             </h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p._id} product={p} />
               ))}

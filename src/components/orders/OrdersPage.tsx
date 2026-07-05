@@ -191,7 +191,7 @@ function OrderCard({ order, index }: { order: Order; index: number }) {
       </div>
 
       {/* Dải giao hàng: địa chỉ + phương thức thanh toán (1 dòng gọn) */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-gray-300 px-4 py-2 text-xs text-gray-500">
         <span className="inline-flex min-w-0 items-center gap-1">
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 shrink-0 text-[#007e42]">
             <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
@@ -213,7 +213,7 @@ function OrderCard({ order, index }: { order: Order; index: number }) {
       )}
 
       {/* Footer: phí ship + tổng tiền */}
-      <div className="flex flex-col items-end gap-0.5 border-t border-gray-100 bg-gray-50/60 px-4 py-3">
+      <div className="flex flex-col items-end gap-0.5 border-t border-gray-300 bg-gray-200 px-4 py-3">
         <span className="text-xs text-gray-400">
           Phí vận chuyển: {order.shippingFee > 0 ? fmt(order.shippingFee) : "Miễn phí"}
         </span>

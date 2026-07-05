@@ -34,6 +34,7 @@ export default function BenhLuaPage() {
 
   /* ── Thuốc gợi ý: map theo từng bệnh ── */
   const [recProducts, setRecProducts] = useState<Record<string, Product[]>>({});
+  const [recLoading, setRecLoading] = useState(true); // đang tải thuốc gợi ý
 
   /* ── Ảnh đang xem (index) theo từng bệnh, cho gallery nhiều ảnh ── */
   const [activeImgIdx, setActiveImgIdx] = useState<Record<string, number>>({});
@@ -68,23 +69,31 @@ export default function BenhLuaPage() {
     if (diseases.length === 0) return;
     let cancelled = false;
     (async () => {
+      setRecLoading(true);
       const allIds = Array.from(
         new Set(diseases.flatMap((d) => d.recommendedProductIds ?? [])),
       );
-      if (allIds.length === 0) return;
-      const results = await Promise.allSettled(allIds.map((id) => getProduct(id)));
-      if (cancelled) return;
-      const byId: Record<string, Product> = {};
-      results.forEach((r) => {
-        if (r.status === "fulfilled") byId[r.value._id] = r.value;
-      });
-      const map: Record<string, Product[]> = {};
-      diseases.forEach((d) => {
-        map[d._id] = (d.recommendedProductIds ?? [])
-          .map((id) => byId[id])
-          .filter(Boolean);
-      });
-      setRecProducts(map);
+      if (allIds.length === 0) {
+        if (!cancelled) setRecLoading(false);
+        return;
+      }
+      try {
+        const results = await Promise.allSettled(allIds.map((id) => getProduct(id)));
+        if (cancelled) return;
+        const byId: Record<string, Product> = {};
+        results.forEach((r) => {
+          if (r.status === "fulfilled") byId[r.value._id] = r.value;
+        });
+        const map: Record<string, Product[]> = {};
+        diseases.forEach((d) => {
+          map[d._id] = (d.recommendedProductIds ?? [])
+            .map((id) => byId[id])
+            .filter(Boolean);
+        });
+        setRecProducts(map);
+      } finally {
+        if (!cancelled) setRecLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -370,8 +379,11 @@ export default function BenhLuaPage() {
                         </section>
                       )}
 
-                      {/* Thuốc gợi ý — khối nhỏ cuối bệnh */}
-                      {recs.length > 0 && (
+                      {/* Thuốc gợi ý — khối nhỏ cuối bệnh.
+                          Hiện khối khi: đã có thuốc, HOẶC bệnh có ID thuốc mà đang tải
+                          (để show skeleton thay vì trống → tránh "nhảy" content). */}
+                      {(recs.length > 0 ||
+                        (recLoading && (d.recommendedProductIds?.length ?? 0) > 0)) && (
                         <section className="mt-6 rounded-xl border border-gray-200 bg-[#e5e7eb] p-4">
                           <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#007e42]">
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
@@ -379,21 +391,44 @@ export default function BenhLuaPage() {
                             </svg>
                             Thuốc đặc trị gợi ý
                           </h3>
-                          {/* ≤4 SP: lưới gọn. >4 SP: cuộn ngang, không dàn hết ra. */}
+                          {recs.length === 0 ? (
+                            /* Skeleton khi đang tải thuốc */
+                            <div className="-mx-1 flex gap-3 px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 sm:pb-0 lg:grid-cols-4">
+                              {Array.from({
+                                length: Math.min(4, d.recommendedProductIds?.length ?? 2),
+                              }).map((_, k) => (
+                                <div
+                                  key={k}
+                                  className="w-[44vw] max-w-[180px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm sm:w-auto sm:max-w-none"
+                                >
+                                  <div className="aspect-square w-full animate-pulse bg-gray-200" />
+                                  <div className="space-y-1.5 p-3">
+                                    <div className="h-3 w-full animate-pulse rounded bg-gray-200" />
+                                    <div className="h-3 w-2/3 animate-pulse rounded bg-gray-200" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                          <>
+                          {/* >4 SP: cuộn ngang trên mọi màn hình (không dàn nhiều hàng).
+                              ≤4 SP: mobile cuộn ngang, từ sm trở lên dàn thành lưới. */}
                           <div
                             className={
                               recs.length > 4
                                 ? "-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]"
-                                : "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                                : "-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
                             }
                           >
                             {recs.map((p) => (
                               <Link
                                 key={p._id}
                                 href={`/san-pham/${p._id}`}
-                                className={`group flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#007e42] hover:shadow-lg ${
-                                  recs.length > 4 ? "w-36 shrink-0 snap-start sm:w-40" : ""
-                                }`}
+                                className={
+                                  recs.length > 4
+                                    ? "group flex w-[44vw] max-w-[180px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#007e42] hover:shadow-lg sm:w-40"
+                                    : "group flex w-[44vw] max-w-[180px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:border-[#007e42] hover:shadow-lg sm:w-auto sm:max-w-none sm:shrink"
+                                }
                               >
                                 {/* Ảnh trên */}
                                 <div className="relative aspect-square w-full bg-white">
@@ -420,6 +455,8 @@ export default function BenhLuaPage() {
                           >
                             Xem thêm thuốc bảo vệ thực vật →
                           </Link>
+                          </>
+                          )}
                         </section>
                       )}
                       </div>

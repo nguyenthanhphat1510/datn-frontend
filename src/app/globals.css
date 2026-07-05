@@ -120,3 +120,31 @@ body {
   animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Badge giỏ hàng nảy nhẹ khi số lượng thay đổi */
+@keyframes cartBadgePop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Ảnh sản phẩm "bay" vào giỏ hàng — bù trừ bằng biến CSS đặt lúc chạy */
+@keyframes flyToCart {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fly-dx), var(--fly-dy)) scale(0.15);
+    opacity: 0.35;
+  }
+}
+
