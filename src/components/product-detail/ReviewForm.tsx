@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createReview, uploadReviewImages } from "@/services/reviews";
 
 /* Bộ chọn sao click được (1..5). */
@@ -66,10 +66,26 @@ export default function ReviewForm({
 
   const MAX_IMAGES = 5;
 
+  // Tạo blob URL preview MỘT LẦN cho mỗi file (không tạo lại mỗi lần render —
+  // gõ comment gây nhiều re-render, nếu tạo trong JSX thì preview bị chớp/mất).
+  const previews = useMemo(
+    () => files.map((file) => URL.createObjectURL(file)),
+    [files],
+  );
+
+  // Thu hồi blob URL khi danh sách preview đổi / unmount để tránh rò rỉ.
+  useEffect(() => {
+    return () => {
+      previews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previews]);
+
   // Thêm ảnh (gộp với ảnh đã chọn), giới hạn tối đa MAX_IMAGES.
-  function addFiles(picked: FileList | null) {
-    if (!picked) return;
-    setFiles((prev) => [...prev, ...Array.from(picked)].slice(0, MAX_IMAGES));
+  // Nhận sẵn mảng File (đã copy khỏi FileList sống) để tránh mất dữ liệu khi
+  // input bị reset value ngay sau đó.
+  function addFiles(picked: File[]) {
+    if (picked.length === 0) return;
+    setFiles((prev) => [...prev, ...picked].slice(0, MAX_IMAGES));
   }
 
   function removeFile(idx: number) {
@@ -126,19 +142,22 @@ export default function ReviewForm({
           multiple
           hidden
           onChange={(e) => {
-            addFiles(e.target.files);
+            // Copy FileList sống thành mảng NGAY, trước khi reset value (reset sẽ
+            // làm rỗng FileList; setState chạy sau nên cần giữ bản copy).
+            const picked = e.target.files ? Array.from(e.target.files) : [];
+            addFiles(picked);
             e.target.value = ""; // reset để chọn lại cùng ảnh được
           }}
         />
         <div className="flex flex-wrap gap-2">
-          {files.map((file, idx) => (
+          {files.map((_file, idx) => (
             <div
-              key={idx}
+              key={previews[idx]}
               className="group relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200 bg-white"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={URL.createObjectURL(file)}
+                src={previews[idx]}
                 alt={`Ảnh ${idx + 1}`}
                 className="h-full w-full object-cover"
               />
