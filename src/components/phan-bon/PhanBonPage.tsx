@@ -11,6 +11,7 @@ import {
 } from "@/services/products";
 import { ProductCard } from "@/components/home/ProductItem";
 import { ILeaf, ISearch, IFilter, IHome } from "@/components/icons";
+import CustomSelect from "@/components/ui/CustomSelect";
 import PhanBonHero from "./PhanBonHero";
 
 const PAGE_SIZE = 8;
@@ -249,7 +250,7 @@ export default function PhanBonPage() {
 
           {/* Mobile drawer */}
           {mobileFiltersOpen && (
-            <div className="fixed inset-0 z-50 bg-black/50 lg:hidden flex justify-end" onClick={() => setMobileFiltersOpen(false)}>
+            <div className="fixed inset-0 z-50 bg-black/50 lg:hidden flex justify-end cursor-pointer" onClick={() => setMobileFiltersOpen(false)}>
               <div className="bg-white w-80 h-full p-6 overflow-y-auto space-y-5" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between border-b pb-4">
                   <h3 className="text-sm font-black text-gray-800">Bộ Lọc Phân Bón</h3>
@@ -363,15 +364,15 @@ export default function PhanBonPage() {
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                <select
+                <CustomSelect<SortOption>
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-[#007e42]"
-                >
-                  <option value="mac-dinh">Sắp xếp: Mặc định</option>
-                  <option value="gia-tang">Giá tăng dần</option>
-                  <option value="gia-giam">Giá giảm dần</option>
-                </select>
+                  onChange={(v) => setSortBy(v)}
+                  options={[
+                    { value: "mac-dinh", label: "Sắp xếp: Mặc định" },
+                    { value: "gia-tang", label: "Giá tăng dần" },
+                    { value: "gia-giam", label: "Giá giảm dần" },
+                  ]}
+                />
               </div>
             </div>
 

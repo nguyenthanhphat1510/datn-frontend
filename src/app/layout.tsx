@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LuaXanh",
-  description: "Website ban phan bon va thuoc cho cay lua",
+  title: "TP Agri - Phân bón & Thuốc BVTV cho cây lúa",
+  description: "TP Agri - Cửa hàng phân bón và thuốc bảo vệ thực vật uy tín cho cây lúa",
 };
 
 export default function RootLayout({

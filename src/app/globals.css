@@ -12,6 +12,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * Tailwind v4 đổi cursor mặc định của <button> thành `default` (khác v3).
+ * Khôi phục con trỏ bàn tay cho các phần tử bấm được; giữ nguyên cho nút bị vô hiệu.
+ */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+label[for],
+select:not(:disabled) {
+  cursor: pointer;
+}
+
 
 
 body {

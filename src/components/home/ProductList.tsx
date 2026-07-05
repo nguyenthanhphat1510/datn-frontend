@@ -435,7 +435,7 @@ export default function ProductList() {
 
           {/* Sidebar (mobile drawer) */}
           {drawerOpen && (
-            <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setDrawerOpen(false)}>
+            <div className="fixed inset-0 z-50 cursor-pointer lg:hidden" onClick={() => setDrawerOpen(false)}>
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
               <div
                 className="absolute left-0 top-0 h-full w-80 max-w-[85vw] overflow-y-auto bg-gray-50 p-4 shadow-2xl"

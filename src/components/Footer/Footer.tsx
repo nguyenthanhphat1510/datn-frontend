@@ -52,10 +52,10 @@ const productLinks = [
 ];
 
 const supportLinks = [
-  { label: "Hướng dẫn mua hàng", href: "#" },
-  { label: "Chính sách đổi trả", href: "#" },
-  { label: "Chính sách bảo mật", href: "#" },
-  { label: "Câu hỏi thường gặp", href: "#" },
+  { label: "Hướng dẫn mua hàng", href: "/huong-dan-mua-hang" },
+  { label: "Chính sách đổi trả", href: "/chinh-sach-doi-tra" },
+  { label: "Chính sách bảo mật", href: "/chinh-sach-bao-mat" },
+  { label: "Câu hỏi thường gặp", href: "/cau-hoi-thuong-gap" },
 ];
 
 export default function Footer() {
@@ -176,10 +176,10 @@ export default function Footer() {
                   <IMail />
                 </span>
                 <a
-                  href="mailto:hotro@tpagri.vn"
+                  href="mailto:nguyenthanhphat2004.st@gmail.com"
                   className="transition hover:text-white"
                 >
-                  hotro@tpagri.vn
+                  nguyenthanhphat2004.st@gmail.com
                 </a>
               </li>
             </ul>

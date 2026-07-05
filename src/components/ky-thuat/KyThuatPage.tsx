@@ -235,7 +235,7 @@ export default function KyThuatPage() {
       {/* ── Drawer danh sách (mobile) ── */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div className="flex-1 bg-black/50" onClick={() => setSidebarOpen(false)} />
+          <div className="flex-1 cursor-pointer bg-black/50" onClick={() => setSidebarOpen(false)} />
           <div className="w-80 max-w-[85%] overflow-y-auto bg-white p-5">
             <div className="mb-4 flex items-center justify-between border-b pb-3">
               <h3 className="text-sm font-black text-gray-800">Tài liệu kỹ thuật</h3>
