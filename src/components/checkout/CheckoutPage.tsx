@@ -463,8 +463,8 @@ export default function CheckoutPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           {/* ── Trái: địa chỉ giao hàng ── */}
           <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-md">
-              <div className="-mx-5 -mt-5 mb-4 flex items-center justify-between bg-[#007e42] px-5 py-3">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-md">
+              <div className="-mx-5 -mt-5 mb-4 flex items-center justify-between rounded-t-2xl bg-[#007e42] px-5 py-3">
                 <h2 className="flex items-center gap-2 text-base font-bold text-white">
                   <span className="text-white">
                     <IMapPin />

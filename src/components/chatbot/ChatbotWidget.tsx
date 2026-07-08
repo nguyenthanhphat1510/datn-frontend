@@ -23,6 +23,7 @@ type Diagnosis = {
   disease: string;
   confidence: number; // 0..100
   level: DiagnosisLevel;
+  image: string | null; // URL ảnh minh họa bệnh (từ DB); null nếu chưa có
 };
 
 type Message = {
@@ -166,12 +167,6 @@ const DIAGNOSIS_STYLE: Record<
   },
 };
 
-/* TEST UI: map tên bệnh → ảnh minh họa trong /public.
-   Tạm dùng chung 1 ảnh để xem bố cục; sau này thay ảnh riêng từng bệnh. */
-function diseaseImage(_name: string): string {
-  return "/dao-on-lua.png";
-}
-
 /* Mock tên tiếng Anh + tác nhân theo TÊN BỆNH (tiếng Việt) — giống trang chẩn
    đoán (/chan-doan), key theo tên vì thẻ chatbot không có slug. */
 const DISEASE_ENGLISH_NAME: Record<string, string> = {
@@ -194,15 +189,20 @@ const DISEASE_CAUSE: Record<string, string> = {
 
 function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
   const s = DIAGNOSIS_STYLE[diagnosis.level];
-  const img = diseaseImage(diagnosis.disease);
   const englishName = DISEASE_ENGLISH_NAME[diagnosis.disease];
   const cause = DISEASE_CAUSE[diagnosis.disease];
   return (
     <div className="flex w-full gap-3 overflow-hidden rounded-xl border-2 border-amber-400 bg-white p-3 shadow-sm">
-      {/* Ảnh minh họa bệnh */}
-      <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-100">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt={diagnosis.disease} className="h-full w-full object-cover" />
+      {/* Ảnh minh họa bệnh — lấy từ DB (Disease.images). Không có ảnh thì hiện icon lá. */}
+      <div className="flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-gray-100">
+        {diagnosis.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={diagnosis.image} alt={diagnosis.disease} className="h-full w-full object-cover" />
+        ) : (
+          <div className="text-[#007e42]">
+            <IconLeaf />
+          </div>
+        )}
       </div>
 
       {/* Nội dung */}
@@ -210,7 +210,7 @@ function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <span className="mb-1 inline-block rounded-full bg-[#007e42] px-2 py-0.5 text-[9px] font-bold uppercase text-white">
-              Khả năng cao nhất
+              Kết quả phù hợp nhất
             </span>
             <h3 className="text-sm font-extrabold text-gray-900">{diagnosis.disease}</h3>
             {englishName && (

@@ -276,7 +276,7 @@ function AddressAutocomplete({
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       {open && (
-        <ul className="absolute top-full z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+        <ul className="absolute top-full z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
           {loading && (
             <li className="flex items-center gap-2 px-3 py-2 text-xs text-gray-400">
               <ISpinner />

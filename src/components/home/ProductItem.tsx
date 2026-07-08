@@ -6,6 +6,19 @@ import { fmt } from "@/lib/format";
 import { Stars } from "@/components/Stars";
 import { BADGE_STYLES, ILeaf } from "@/components/icons";
 
+/* Làm sạch chuỗi thành phần để hiện gọn dưới tên trên thẻ: bỏ gạch đầu dòng, chuỗi
+   dấu chấm căn lề ("……"), khoảng trắng thừa. Vd "– Tebufenpyrad……250g/kg – Thiamethoxam"
+   → "Tebufenpyrad 250g/kg, Thiamethoxam". Cắt 1 dòng bằng line-clamp ở JSX. Không đổi DB. */
+function cleanIngredients(raw: string): string {
+  return raw
+    .replace(/[.．]{2,}/g, " ") // chuỗi dấu chấm căn lề → 1 khoảng trắng
+    .replace(/\s*[–—-]\s*/g, ", ") // gạch ngang ngăn cách → dấu phẩy
+    .replace(/^[\s,]+/, "") // bỏ dấu phẩy/khoảng trắng thừa đầu chuỗi
+    .replace(/\s+,/g, ",") // khoảng trắng trước dấu phẩy
+    .replace(/\s+/g, " ") // gộp khoảng trắng
+    .trim();
+}
+
 function discountPercent(product: Product) {
   if (product.originalPrice && product.originalPrice > product.price) {
     return Math.round((1 - product.price / product.originalPrice) * 100);
@@ -73,12 +86,23 @@ export function ProductCard({ product }: { product: Product }) {
           {product.name}
         </span>
 
+        {/* Thành phần / hoạt chất — chỉ hiện khi có. -mt-1 kéo sát tên; line-clamp-1 cắt 1 dòng. */}
+        {product.ingredients && (
+          <span className="-mt-1 line-clamp-1 text-xs text-gray-500" title={product.ingredients}>
+            {cleanIngredients(product.ingredients)}
+          </span>
+        )}
+
+        {/* Hàng đánh giá — luôn chiếm chỗ (kể cả khi chưa có sao) để mọi thẻ đều
+            đủ tầng, giữ khoảng cách tới giá đồng đều giữa các thẻ trong lưới. */}
         {product.averageRating ? (
           <div className="flex items-center gap-1.5">
             <Stars rating={product.averageRating} />
             <span className="text-xs text-gray-400">({product.reviewCount ?? 0} đánh giá)</span>
           </div>
-        ) : null}
+        ) : (
+          <span className="text-xs text-gray-400">Chưa có đánh giá</span>
+        )}
 
         <div className="mt-auto flex flex-wrap items-baseline gap-1.5 pt-1">
           <span className="text-base font-bold text-[#007e42]">{fmt(product.price)}</span>

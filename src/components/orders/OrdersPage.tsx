@@ -18,12 +18,27 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "Đã hủy", cls: "bg-white text-red-600" },
 };
 
-/* Nhãn phương thức thanh toán ngắn gọn (khớp PaymentMethod backend). */
-const PAY_METHOD: Record<string, string> = {
-  cod: "COD",
-  vnpay: "VNPAY",
-  momo: "MoMo",
+/* Phương thức thanh toán → nhãn + logo (khớp PaymentMethod backend).
+   COD không có logo (icon = null) → chỉ hiện chữ. */
+const PAY_METHOD: Record<string, { label: string; icon: string | null }> = {
+  cod: { label: "COD", icon: null },
+  vnpay: { label: "VNPAY", icon: "/vnpay.png" },
+  momo: { label: "MoMo", icon: "/momo.png" },
 };
+
+/* Thẻ phương thức thanh toán: logo (nếu có) + tên. Dùng ở dải giao hàng. */
+function PaymentMethod({ method }: { method?: string }) {
+  const m = PAY_METHOD[method ?? "cod"] ?? { label: method ?? "—", icon: null };
+  return (
+    <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
+      {m.icon && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={m.icon} alt={m.label} className="h-5 w-5 shrink-0 rounded-sm object-contain" />
+      )}
+      {m.label}
+    </span>
+  );
+}
 
 /* Trạng thái thanh toán → nhãn + màu badge (khớp PaymentStatus backend). */
 const PAY_STATUS: Record<string, { label: string; cls: string }> = {
@@ -200,9 +215,7 @@ function OrderCard({ order, index }: { order: Order; index: number }) {
             {order.shippingAddress?.fullName} · {order.shippingAddress?.phone} · {order.shippingAddress?.address || "—"}
           </span>
         </span>
-        <span className="ml-auto shrink-0 rounded bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
-          {PAY_METHOD[order.paymentMethod ?? "cod"] ?? order.paymentMethod}
-        </span>
+        <PaymentMethod method={order.paymentMethod} />
       </div>
 
       {/* Ghi chú nếu có */}

@@ -7,6 +7,8 @@ import { predictDisease } from "@/services/diseases";
 import { getProduct } from "@/services/products";
 import type { DiseasePrediction, PredictResult } from "@/types/disease";
 import type { Product } from "@/types/product";
+import { fmt } from "@/lib/format";
+import { Stars } from "@/components/Stars";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB — khớp giới hạn ml-service
 const ACCEPTED = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
@@ -547,10 +549,30 @@ function DetailModal({
                         className="object-contain p-3 drop-shadow-md transition duration-300 group-hover:scale-110"
                       />
                     </div>
-                    <div className="flex flex-1 flex-col p-3">
+                    <div className="flex flex-1 flex-col gap-1.5 p-3">
                       <p className="line-clamp-2 text-[13px] font-bold leading-snug text-gray-800 transition group-hover:text-[#007e42]">
                         {p.name}
                       </p>
+                      {/* Đánh giá — luôn chiếm chỗ để các thẻ đều tầng */}
+                      {p.averageRating ? (
+                        <div className="flex items-center gap-1">
+                          <Stars rating={p.averageRating} />
+                          <span className="text-[11px] text-gray-400">({p.reviewCount ?? 0})</span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-gray-400">Chưa có đánh giá</span>
+                      )}
+                      {/* Giá — salePrice là giá bán, gạch ngang giá gốc khi giảm */}
+                      <div className="mt-auto flex flex-wrap items-baseline gap-1.5 pt-0.5">
+                        <span className="text-sm font-bold text-[#007e42]">
+                          {fmt(p.salePrice ?? p.price)}
+                        </span>
+                        {p.salePrice != null && p.salePrice < p.price && (
+                          <span className="text-[11px] text-gray-400 line-through">
+                            {fmt(p.price)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
