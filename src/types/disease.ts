@@ -29,8 +29,36 @@ export interface DiseasePrediction {
   disease: Disease | null;
 }
 
+/**
+ * Trạng thái tầng phát hiện ảnh lạ (OOD) của ml-service. Khớp PredictStatus ở
+ * backend disease-prediction.service.ts.
+ *   KNOWN_DISEASE         - đủ tin cậy: hiện kết quả + thuốc gợi ý.
+ *   NEED_MORE_INFORMATION - vùng xám: nêu bệnh nghi ngờ, KHÔNG gợi ý thuốc.
+ *   UNKNOWN_DISEASE       - ảnh ngoài phân phối: không hiện bệnh nào.
+ */
+export type PredictStatus =
+  | "KNOWN_DISEASE"
+  | "NEED_MORE_INFORMATION"
+  | "UNKNOWN_DISEASE";
+
+/** Điểm chi tiết của tầng OOD — dùng để giải thích vì sao hệ thống từ chối. */
+export interface OodInfo {
+  energy_score: number;
+  energy_threshold: number;
+  energy_is_ood: boolean;
+  feature_distance: number;
+  distance_threshold: number;
+  distance_is_ood: boolean;
+  top_prob_calibrated: number;
+  margin: number;
+}
+
 /** Kết quả trả về từ POST /diseases/predict. */
 export interface PredictResult {
+  status: PredictStatus;
+  message: string; // câu trả lời sẵn từ ml-service
   predictions: DiseasePrediction[]; // top-k, sắp theo confidence giảm dần
-  top: DiseasePrediction; // dự đoán cao nhất
+  // null khi UNKNOWN_DISEASE — lúc đó dự đoán cao nhất không có ý nghĩa.
+  top: DiseasePrediction | null;
+  ood: OodInfo | null;
 }

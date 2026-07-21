@@ -26,6 +26,21 @@ type Diagnosis = {
   image: string | null; // URL ảnh minh họa bệnh (từ DB); null nếu chưa có
 };
 
+/**
+ * Một bệnh ứng viên để người dùng tự đối chiếu rồi chọn, khi bot chưa đủ căn cứ
+ * chốt bệnh. Bấm thẻ nào thì gửi `query` của thẻ đó lên như một tin nhắn mới.
+ */
+type DiseaseChoice = {
+  slug: string;
+  name: string;
+  image: string | null;
+  viTri: string;
+  hinhDang: string;
+  mauSac: string;
+  giaiDoan?: string; // giai đoạn lúa hay phát sinh bệnh; có thể chưa có trong DB
+  query: string; // câu mô tả gửi lên khi chọn thẻ này
+};
+
 type Message = {
   id: number;
   role: "bot" | "user";
@@ -35,6 +50,8 @@ type Message = {
   products?: ChatProduct[];
   diagnosis?: Diagnosis;
   sources?: string[]; // tên tài liệu kỹ thuật nguồn (nhánh ky_thuat)
+  diseaseChoices?: DiseaseChoice[]; // thẻ bệnh mời chọn khi chưa chốt được
+  choicesUsed?: boolean; // đã chọn 1 thẻ rồi → ẩn nhóm thẻ này đi
 };
 
 /* ─────────────────────────────────────────
@@ -247,6 +264,70 @@ function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
   );
 }
 
+/* ───────── Thẻ dấu hiệu để người dùng đối chiếu & chọn ─────────
+   Hiện khi bot chưa đủ căn cứ chốt bệnh. KHÔNG hiện tên bệnh: người dùng chọn dựa
+   trên ảnh + dấu hiệu giống ruộng nhà mình, không phải dựa vào tên bệnh họ đoán
+   sẵn — tránh việc đọc thấy tên quen thì bấm luôn mà không đối chiếu. Cũng không
+   hiện % hay thuốc vì chưa chốt được bệnh. */
+function DiseaseChoiceCard({
+  choice,
+  disabled,
+  onClick,
+}: {
+  choice: DiseaseChoice;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex w-full gap-4 rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-[#007e42] hover:shadow-md disabled:opacity-60"
+    >
+      {/* Ảnh minh họa — cùng cỡ với thẻ kết quả ở trang Chẩn đoán qua ảnh */}
+      {choice.image && (
+        <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-linear-to-br from-[#ebf5ef] to-[#cce8d9]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={choice.image}
+            alt="Ảnh minh họa dấu hiệu bệnh"
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Nội dung dấu hiệu để đậm & to hơn nhãn — đây mới là thứ người dùng cần
+            đọc để đối chiếu với ruộng, nhãn chỉ là chú thích. */}
+        <dl className="space-y-1 text-[13px] leading-relaxed">
+          <div>
+            <span className="text-xs font-semibold text-gray-500">Vị trí: </span>
+            <span className="font-semibold text-gray-900">{choice.viTri}</span>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-gray-500">Hình dạng: </span>
+            <span className="font-semibold text-gray-900">{choice.hinhDang}</span>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-gray-500">Màu sắc: </span>
+            <span className="font-semibold text-gray-900">{choice.mauSac}</span>
+          </div>
+          {choice.giaiDoan && (
+            <div>
+              <span className="text-xs font-semibold text-gray-500">Giai đoạn: </span>
+              <span className="font-semibold text-gray-900">{choice.giaiDoan}</span>
+            </div>
+          )}
+        </dl>
+        <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-bold text-[#007e42]">
+          Ruộng tôi giống thế này →
+        </span>
+      </div>
+    </button>
+  );
+}
+
 /* Số sao đánh giá — 5 sao, tô vàng theo rating (làm tròn 0.5). */
 function Stars({ rating }: { rating: number }) {
   return (
@@ -404,19 +485,44 @@ export default function ChatbotWidget() {
     ]);
   }
 
-  async function handleSend(text: string) {
+  /* Người dùng bấm 1 thẻ → gửi mô tả đặc trưng lên như một tin nhắn, và ẩn nhóm
+     thẻ đi để không bấm lại nhầm.
+
+     Bong bóng hiện DẤU HIỆU đã chọn, không phải tên bệnh: thẻ vốn không hiện tên
+     nên người dùng chọn theo dấu hiệu; hiện tên bệnh ở đây sẽ như thể họ đã tự
+     chẩn đoán, và lịch sử chat đọc lại cũng không khớp với cái họ vừa bấm. */
+  function handleChoiceClick(msgId: number, choice: DiseaseChoice) {
+    if (loading) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, choicesUsed: true } : m)),
+    );
+    const label = `Ruộng tôi: ${choice.viTri}, ${choice.hinhDang}, ${choice.mauSac}`;
+    // Nhãn hiển thị nêu cả giai đoạn cho khớp thẻ người dùng vừa đọc; còn
+    // choice.query (gửi lên API) vẫn chỉ 3 chiều — xem toDiseaseChoices.
+    void handleSend(choice.query, choice.giaiDoan ? `${label} (${choice.giaiDoan})` : label);
+  }
+
+  /**
+   * @param text  nội dung thật sự gửi lên API
+   * @param label nội dung hiện trong bong bóng tin của người dùng (mặc định = text).
+   *   Tách ra để thẻ bệnh hiện "Đạo ôn lá" thay vì cả câu mô tả ghép từ keyFeatures.
+   */
+  async function handleSend(text: string, label?: string) {
     const value = text.trim();
     if (!value || loading) return;
 
     const userMsg: Message = {
       id: Date.now(),
       role: "user",
-      text: value,
+      // Bong bóng hiện label (vd tên bệnh vừa chọn) cho gọn; API vẫn nhận `value`.
+      text: label ?? value,
       time: nowTime(),
     };
 
     // Lịch sử gửi lên API = các tin có text (bỏ field UI), map role bot→assistant.
-    const history = [...messages, userMsg]
+    // Tin vừa gửi dùng `value` (mô tả đầy đủ) chứ không phải label, để backend có
+    // đủ đặc trưng mà chẩn đoán.
+    const history = [...messages, { ...userMsg, text: value }]
       .filter((m) => m.text)
       .map((m) => ({
         role: m.role === "bot" ? ("assistant" as const) : ("user" as const),
@@ -435,11 +541,12 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const { reply, products, diagnosis, sources } = await apiPost<{
+      const { reply, products, diagnosis, sources, diseaseChoices } = await apiPost<{
         reply: string;
         products?: ChatProduct[];
         diagnosis?: Diagnosis;
         sources?: string[];
+        diseaseChoices?: DiseaseChoice[];
       }>("/chatbot/message", {
         messages: history,
         ...(comparedProductIds?.length ? { comparedProductIds } : {}),
@@ -454,6 +561,7 @@ export default function ChatbotWidget() {
           products,
           diagnosis,
           sources,
+          diseaseChoices,
         },
       ]);
     } catch (err) {
@@ -521,10 +629,11 @@ export default function ChatbotWidget() {
     try {
       const form = new FormData();
       form.append("file", file);
-      const { reply, products, diagnosis } = await apiUpload<{
+      const { reply, products, diagnosis, diseaseChoices } = await apiUpload<{
         reply: string;
         products?: ChatProduct[];
         diagnosis?: Diagnosis;
+        diseaseChoices?: DiseaseChoice[];
       }>("/chatbot/predict-image", form);
       setMessages((prev) => [
         ...prev,
@@ -535,6 +644,7 @@ export default function ChatbotWidget() {
           time: nowTime(),
           products,
           diagnosis,
+          diseaseChoices,
         },
       ]);
     } catch (err) {
@@ -707,6 +817,23 @@ export default function ChatbotWidget() {
                       {msg.role === "bot" ? <RichText text={msg.text} /> : msg.text}
                     </div>
                   )}
+
+                  {/* Thẻ bệnh mời chọn — khi bot chưa đủ căn cứ chốt bệnh. Ẩn sau
+                      khi người dùng đã chọn 1 thẻ (choicesUsed). */}
+                  {msg.diseaseChoices &&
+                    msg.diseaseChoices.length > 0 &&
+                    !msg.choicesUsed && (
+                      <div className="mt-2 w-full space-y-2">
+                        {msg.diseaseChoices.map((c) => (
+                          <DiseaseChoiceCard
+                            key={c.slug}
+                            choice={c}
+                            disabled={loading}
+                            onClick={() => handleChoiceClick(msg.id, c)}
+                          />
+                        ))}
+                      </div>
+                    )}
 
                   {/* Nhãn nguồn tài liệu (nhánh kỹ thuật) — cho người dùng biết câu
                       trả lời lấy từ tài liệu thật đã upload, không phải AI bịa ra. */}

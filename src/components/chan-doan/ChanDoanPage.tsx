@@ -5,7 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { predictDisease } from "@/services/diseases";
 import { getProduct } from "@/services/products";
-import type { DiseasePrediction, PredictResult } from "@/types/disease";
+import type {
+  DiseasePrediction,
+  PredictResult,
+  PredictStatus,
+} from "@/types/disease";
 import type { Product } from "@/types/product";
 import { fmt } from "@/lib/format";
 import { Stars } from "@/components/Stars";
@@ -273,14 +277,27 @@ export default function ChanDoanPage() {
 
               {result && !loading && (
                 <div className="space-y-3">
-                  {result.predictions.map((p, i) => (
-                    <ResultCard
-                      key={p.class}
-                      prediction={p}
-                      rank={i}
-                      onDetail={() => setDetail(p)}
-                    />
-                  ))}
+                  <StatusBanner status={result.status} />
+
+                  {/* Ảnh ngoài phân phối: KHÔNG liệt kê bệnh nào. Model vẫn trả
+                      top-k nhưng các con số đó vô nghĩa với ảnh lạ. */}
+                  {result.status !== "UNKNOWN_DISEASE" &&
+                    (result.status === "NEED_MORE_INFORMATION"
+                      ? // Vùng xám: chỉ nêu 2 ứng viên hàng đầu, các bệnh phía sau
+                        // xác suất gần 0 chỉ làm nhiễu.
+                        result.predictions.slice(0, 2)
+                      : result.predictions
+                    ).map((p, i) => (
+                      <ResultCard
+                        key={p.class}
+                        prediction={p}
+                        rank={i}
+                        // Chưa đủ tin cậy thì không tôn bệnh nào lên "khả năng cao
+                        // nhất" và không mở đường sang thuốc gợi ý.
+                        uncertain={result.status === "NEED_MORE_INFORMATION"}
+                        onDetail={() => setDetail(p)}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -300,18 +317,72 @@ export default function ChanDoanPage() {
   );
 }
 
+/* ───────── Banner trạng thái tầng OOD ───────── */
+/**
+ * Giải thích mức tin cậy của kết quả trước khi người dùng đọc danh sách bệnh.
+ * KNOWN_DISEASE không cần banner — danh sách tự nói lên kết quả.
+ */
+function StatusBanner({ status }: { status: PredictStatus }) {
+  if (status === "KNOWN_DISEASE") return null;
+
+  const uncertain = status === "NEED_MORE_INFORMATION";
+
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        uncertain
+          ? "border-amber-200 bg-amber-50"
+          : "border-gray-200 bg-white"
+      }`}
+    >
+      <h3
+        className={`text-sm font-extrabold ${
+          uncertain ? "text-amber-900" : "text-gray-900"
+        }`}
+      >
+        {uncertain
+          ? "Chưa đủ tin cậy để kết luận"
+          : "Không nhận diện được bệnh trong ảnh"}
+      </h3>
+      <p
+        className={`mt-1.5 text-xs leading-relaxed ${
+          uncertain ? "text-amber-800" : "text-gray-600"
+        }`}
+      >
+        {uncertain ? (
+          <>
+            Ảnh có đặc điểm gần với các bệnh bên dưới nhưng chưa đủ rõ để khẳng định,
+            nên hệ thống tạm chưa gợi ý thuốc. Bạn thử chụp lại cận cảnh vết bệnh
+            (đủ sáng, rõ nét), hoặc tham khảo cán bộ kỹ thuật để chắc chắn hơn.
+          </>
+        ) : (
+          <>
+            Ảnh này không giống các bệnh hệ thống đã được học. Có thể đây là bệnh khác,
+            ảnh không phải lá lúa, hoặc điều kiện chụp chưa phù hợp. Bạn thử chụp lại
+            cận cảnh vết bệnh trên lá/thân lúa, hoặc hỏi thêm cán bộ kỹ thuật ở địa phương.
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 /* ───────── Card 1 bệnh trong danh sách kết quả ───────── */
 function ResultCard({
   prediction,
   rank,
+  uncertain,
   onDetail,
 }: {
   prediction: DiseasePrediction;
   rank: number;
+  // true khi status = NEED_MORE_INFORMATION: chỉ nêu bệnh nghi ngờ, không dẫn
+  // sang thuốc và không gắn nhãn "khả năng cao nhất".
+  uncertain: boolean;
   onDetail: () => void;
 }) {
-  const isTop = rank === 0;
-  const hasDetail = !!prediction.disease;
+  const isTop = rank === 0 && !uncertain;
+  const hasDetail = !!prediction.disease && !uncertain;
   const colors = confidenceColors(prediction.confidence);
 
   return (
@@ -354,18 +425,25 @@ function ResultCard({
               </p>
             )}
           </div>
-          <span className={`shrink-0 text-lg font-black ${colors.text}`}>
-            {pct(prediction.confidence)}
-          </span>
+          {/* Ẩn % khi chưa đủ tin cậy: softmax có thể rất cao (99%) ngay cả khi
+              energy/khoảng cách đặc trưng báo ảnh lạ, hiện ra sẽ mâu thuẫn với
+              banner "chưa đủ tin cậy" ngay phía trên. */}
+          {!uncertain && (
+            <span className={`shrink-0 text-lg font-black ${colors.text}`}>
+              {pct(prediction.confidence)}
+            </span>
+          )}
         </div>
 
         {/* Thanh độ tin cậy */}
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-          <div
-            className={`h-full rounded-full transition-all ${colors.bar}`}
-            style={{ width: pct(prediction.confidence) }}
-          />
-        </div>
+        {!uncertain && (
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+            <div
+              className={`h-full rounded-full transition-all ${colors.bar}`}
+              style={{ width: pct(prediction.confidence) }}
+            />
+          </div>
+        )}
 
         {/* Hành động */}
         <div className="mt-3">
@@ -380,6 +458,10 @@ function ResultCard({
               </svg>
               Xem chi tiết &amp; thuốc gợi ý
             </button>
+          ) : uncertain ? (
+            <p className="text-xs italic text-gray-500">
+              Đang là bệnh nghi ngờ — cần thêm thông tin trước khi gợi ý thuốc.
+            </p>
           ) : (
             <p className="text-xs italic text-gray-400">
               Không có dữ liệu bệnh tương ứng (có thể là lá khỏe).
