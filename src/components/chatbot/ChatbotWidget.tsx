@@ -41,6 +41,13 @@ type DiseaseChoice = {
   query: string; // câu mô tả gửi lên khi chọn thẻ này
 };
 
+// Câu hỏi một chiều triệu chứng còn thiếu, kèm nút chọn (nhánh trieu_chung).
+type FeatureQuestion = {
+  chieu: string; // tên chiều đang hỏi (hinhDang/mauSac/viTri/giaiDoan)
+  question: string;
+  options: { label: string; value: string }[]; // nhãn hiển thị + giá trị gửi lên
+};
+
 type Message = {
   id: number;
   role: "bot" | "user";
@@ -52,6 +59,8 @@ type Message = {
   sources?: string[]; // tên tài liệu kỹ thuật nguồn (nhánh ky_thuat)
   diseaseChoices?: DiseaseChoice[]; // thẻ bệnh mời chọn khi chưa chốt được
   choicesUsed?: boolean; // đã chọn 1 thẻ rồi → ẩn nhóm thẻ này đi
+  featureQuestion?: FeatureQuestion; // hỏi nối tiếp 1 chiều triệu chứng còn thiếu
+  featureUsed?: boolean; // đã bấm 1 nút chọn chiều → ẩn nhóm nút này đi
 };
 
 /* ─────────────────────────────────────────
@@ -328,6 +337,52 @@ function DiseaseChoiceCard({
   );
 }
 
+/* Danh sách lựa chọn cho MỘT chiều triệu chứng còn thiếu (nhánh trieu_chung).
+   Chatbot hỏi 1 chiều (vd hình dạng), người dùng bấm 1 thẻ → gửi value của thẻ đó
+   lên như một tin mới (backend gộp với mô tả cũ rồi chẩn đoán lại). Trình bày dạng
+   thẻ dọc bấm được giống DiseaseChoiceCard cho đồng bộ giao diện. Nút "Không rõ"
+   tách riêng cuối, style nhạt hơn để phân biệt với các lựa chọn thật. */
+function FeatureQuestionCard({
+  fq,
+  disabled,
+  onPick,
+}: {
+  fq: FeatureQuestion;
+  disabled: boolean;
+  onPick: (option: { label: string; value: string }) => void;
+}) {
+  const real = fq.options.filter((o) => o.value !== "khong_ro");
+  const skip = fq.options.find((o) => o.value === "khong_ro");
+
+  return (
+    <div className="w-full space-y-2">
+      {real.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onPick(opt)}
+          disabled={disabled}
+          className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-[#007e42] hover:bg-[#ebf5ef] hover:shadow-md disabled:opacity-60"
+        >
+          <span className="font-semibold text-gray-900">{opt.label}</span>
+          <span className="shrink-0 text-sm font-bold text-[#007e42]">→</span>
+        </button>
+      ))}
+
+      {skip && (
+        <button
+          type="button"
+          onClick={() => onPick(skip)}
+          disabled={disabled}
+          className="w-full rounded-xl border border-dashed border-gray-300 bg-transparent px-4 py-2.5 text-center text-sm font-medium text-gray-500 transition hover:border-gray-400 hover:text-gray-700 disabled:opacity-60"
+        >
+          {skip.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* Số sao đánh giá — 5 sao, tô vàng theo rating (làm tròn 0.5). */
 function Stars({ rating }: { rating: number }) {
   return (
@@ -502,6 +557,22 @@ export default function ChatbotWidget() {
     void handleSend(choice.query, choice.giaiDoan ? `${label} (${choice.giaiDoan})` : label);
   }
 
+  /* Người dùng bấm 1 nút chọn cho chiều triệu chứng đang hỏi. Gửi value (giá trị
+     ĐẦY ĐỦ, vd "hình thoi / mắt én") lên API để gộp với mô tả cũ; bong bóng hiện
+     label ngắn (vd "Hình thoi"). Ẩn nhóm nút của message đó sau khi chọn. */
+  function handleFeatureClick(
+    msgId: number,
+    option: { label: string; value: string },
+  ) {
+    if (loading) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, featureUsed: true } : m)),
+    );
+    // "khong_ro" là nút "Không rõ / bỏ qua": vẫn gửi lên để backend biết chiều này
+    // người dùng không xác định được và chuyển sang hỏi chiều khác.
+    void handleSend(option.value, option.label);
+  }
+
   /**
    * @param text  nội dung thật sự gửi lên API
    * @param label nội dung hiện trong bong bóng tin của người dùng (mặc định = text).
@@ -541,16 +612,18 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const { reply, products, diagnosis, sources, diseaseChoices } = await apiPost<{
-        reply: string;
-        products?: ChatProduct[];
-        diagnosis?: Diagnosis;
-        sources?: string[];
-        diseaseChoices?: DiseaseChoice[];
-      }>("/chatbot/message", {
-        messages: history,
-        ...(comparedProductIds?.length ? { comparedProductIds } : {}),
-      });
+      const { reply, products, diagnosis, sources, diseaseChoices, featureQuestion } =
+        await apiPost<{
+          reply: string;
+          products?: ChatProduct[];
+          diagnosis?: Diagnosis;
+          sources?: string[];
+          diseaseChoices?: DiseaseChoice[];
+          featureQuestion?: FeatureQuestion;
+        }>("/chatbot/message", {
+          messages: history,
+          ...(comparedProductIds?.length ? { comparedProductIds } : {}),
+        });
       setMessages((prev) => [
         ...prev,
         {
@@ -562,6 +635,7 @@ export default function ChatbotWidget() {
           diagnosis,
           sources,
           diseaseChoices,
+          featureQuestion,
         },
       ]);
     } catch (err) {
@@ -832,6 +906,21 @@ export default function ChatbotWidget() {
                             onClick={() => handleChoiceClick(msg.id, c)}
                           />
                         ))}
+                      </div>
+                    )}
+
+                  {/* Nút chọn 1 chiều triệu chứng còn thiếu — chatbot hỏi nối tiếp
+                      khi mô tả chưa đủ đặc trưng. Ẩn sau khi người dùng đã bấm 1 nút
+                      (featureUsed). */}
+                  {msg.featureQuestion &&
+                    msg.featureQuestion.options.length > 0 &&
+                    !msg.featureUsed && (
+                      <div className="mt-2 w-full">
+                        <FeatureQuestionCard
+                          fq={msg.featureQuestion}
+                          disabled={loading}
+                          onPick={(opt) => handleFeatureClick(msg.id, opt)}
+                        />
                       </div>
                     )}
 
