@@ -48,6 +48,19 @@ type FeatureQuestion = {
   options: { label: string; value: string }[]; // nhãn hiển thị + giá trị gửi lên
 };
 
+/**
+ * Các CHIỀU triệu chứng backend đã trích được (nhánh trieu_chung). FE KHÔNG hiển
+ * thị, chỉ giữ rồi gửi lại nguyên vẹn ở lượt sau — backend stateless nên đây là
+ * cách nó nhớ người dùng đã tả những gì qua nhiều lượt hỏi đáp.
+ */
+type SymptomSlots = {
+  viTri?: string;
+  mauSac?: string;
+  hinhDang?: string;
+  phanBo?: string;
+  dienTien?: string;
+};
+
 type Message = {
   id: number;
   role: "bot" | "user";
@@ -61,6 +74,13 @@ type Message = {
   choicesUsed?: boolean; // đã chọn 1 thẻ rồi → ẩn nhóm thẻ này đi
   featureQuestion?: FeatureQuestion; // hỏi nối tiếp 1 chiều triệu chứng còn thiếu
   featureUsed?: boolean; // đã bấm 1 nút chọn chiều → ẩn nhóm nút này đi
+  // Nhánh backend đã xử lý lượt này. Gắn cho tin USER (lấy từ intent của câu trả
+  // lời) rồi gửi lại ở lượt sau, để backend chỉ gộp các mô tả TRIỆU CHỨNG khi tìm
+  // bệnh — câu hỏi giá thuốc xen giữa không lọt vào câu chẩn đoán.
+  intent?: string;
+  // Slot triệu chứng backend đã thu tới lượt này (chỉ tin BOT). Không hiển thị,
+  // chỉ gửi lại để backend tiếp tục ca chẩn đoán mà không cần lưu phiên.
+  slots?: SymptomSlots;
 };
 
 /* ─────────────────────────────────────────
@@ -593,11 +613,25 @@ export default function ChatbotWidget() {
     // Lịch sử gửi lên API = các tin có text (bỏ field UI), map role bot→assistant.
     // Tin vừa gửi dùng `value` (mô tả đầy đủ) chứ không phải label, để backend có
     // đủ đặc trưng mà chẩn đoán.
+    // daChotBenh: đánh dấu các tin bot ĐÃ chốt được bệnh (có thẻ chẩn đoán) để
+    // backend biết ranh giới ca chẩn đoán — chốt xong là ca đó kết thúc, mô tả
+    // trước đó không được gộp vào lượt sau nữa. Nếu không đánh dấu, người dùng gõ
+    // lại đúng câu mô tả nghèo ban đầu vẫn ra bệnh cũ, hoặc tả bệnh KHÁC lại bị
+    // ngữ cảnh cũ kéo về bệnh đã chốt.
+    // intent: nhánh backend đã xử lý cho từng tin user ở các lượt TRƯỚC. Gửi lại để
+    // backend chỉ gộp mô tả triệu chứng khi tìm bệnh — câu hỏi giá thuốc / kỹ thuật
+    // xen giữa hai lượt mô tả không lọt vào câu chẩn đoán.
+    // slots: các chiều triệu chứng backend đã trích được ở lượt trước. Gửi lại để
+    // backend tiếp tục ca chẩn đoán — nó không lưu phiên nên nếu FE không echo về
+    // thì mỗi lượt lại phải hỏi lại từ đầu những gì người dùng đã tả.
     const history = [...messages, { ...userMsg, text: value }]
       .filter((m) => m.text)
       .map((m) => ({
         role: m.role === "bot" ? ("assistant" as const) : ("user" as const),
         content: m.text as string,
+        ...(m.role === "bot" && m.diagnosis ? { daChotBenh: true } : {}),
+        ...(m.role === "user" && m.intent ? { intent: m.intent } : {}),
+        ...(m.role === "bot" && m.slots ? { slots: m.slots } : {}),
       }));
 
     // SP đang hiển thị = thẻ SP của tin bot gần nhất có products. Gửi kèm để bot
@@ -612,20 +646,34 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const { reply, products, diagnosis, sources, diseaseChoices, featureQuestion } =
-        await apiPost<{
-          reply: string;
-          products?: ChatProduct[];
-          diagnosis?: Diagnosis;
-          sources?: string[];
-          diseaseChoices?: DiseaseChoice[];
-          featureQuestion?: FeatureQuestion;
-        }>("/chatbot/message", {
-          messages: history,
-          ...(comparedProductIds?.length ? { comparedProductIds } : {}),
-        });
+      const {
+        reply,
+        products,
+        diagnosis,
+        sources,
+        diseaseChoices,
+        featureQuestion,
+        intent,
+        slots,
+      } = await apiPost<{
+        reply: string;
+        products?: ChatProduct[];
+        diagnosis?: Diagnosis;
+        sources?: string[];
+        diseaseChoices?: DiseaseChoice[];
+        featureQuestion?: FeatureQuestion;
+        intent?: string;
+        slots?: SymptomSlots;
+      }>("/chatbot/message", {
+        messages: history,
+        ...(comparedProductIds?.length ? { comparedProductIds } : {}),
+      });
       setMessages((prev) => [
-        ...prev,
+        // Gắn intent NGƯỢC lại cho tin user vừa gửi: backend phân loại xong mới biết
+        // lượt đó thuộc nhánh nào, nên chỉ đánh dấu được sau khi có câu trả lời.
+        ...prev.map((m) =>
+          m.id === userMsg.id && intent ? { ...m, intent } : m,
+        ),
         {
           id: Date.now() + 1,
           role: "bot",
@@ -636,6 +684,7 @@ export default function ChatbotWidget() {
           sources,
           diseaseChoices,
           featureQuestion,
+          slots,
         },
       ]);
     } catch (err) {
