@@ -41,6 +41,16 @@ type DiseaseChoice = {
   query: string; // câu mô tả gửi lên khi chọn thẻ này
 };
 
+/**
+ * Một lựa chọn trả lời cho câu hỏi triệu chứng của bot — render thành nút bấm.
+ * Bấm nút nào thì gửi `value` của nút đó lên như một tin nhắn mới, còn bong bóng
+ * chat hiện `label` cho dễ đọc.
+ */
+type SymptomOption = {
+  label: string;
+  value: string; // "" nghĩa là "Không rõ"
+};
+
 type Message = {
   id: number;
   role: "bot" | "user";
@@ -51,7 +61,8 @@ type Message = {
   diagnosis?: Diagnosis;
   sources?: string[]; // tên tài liệu kỹ thuật nguồn (nhánh ky_thuat)
   diseaseChoices?: DiseaseChoice[]; // thẻ bệnh mời chọn khi chưa chốt được
-  choicesUsed?: boolean; // đã chọn 1 thẻ rồi → ẩn nhóm thẻ này đi
+  symptomOptions?: SymptomOption[]; // nút trả lời khi bot hỏi thêm một chiều triệu chứng
+  choicesUsed?: boolean; // đã chọn 1 thẻ/nút rồi → ẩn nhóm này đi
 };
 
 /* ─────────────────────────────────────────
@@ -138,7 +149,13 @@ function RichText({ text }: { text: string }) {
   return (
     <>
       {text.split("\n").map((line, li) => (
-        <span key={li} className="block">
+        <span
+          key={li}
+          // Dòng TRỐNG (do "\n\n" trong câu trả lời) phải thành khoảng cách thật:
+          // để nguyên thì span rỗng cao 0px và hai đoạn dính liền nhau, đúng lỗi
+          // "câu hỏi đọc bị dồn cục" nhìn thấy trên giao diện.
+          className={line.trim() ? "block" : "block h-2"}
+        >
           {line.split(/(\*\*[^*]+\*\*)/g).map((part, pi) =>
             part.startsWith("**") && part.endsWith("**") ? (
               <strong key={pi} className="font-semibold">
@@ -503,6 +520,23 @@ export default function ChatbotWidget() {
   }
 
   /**
+   * Bấm một nút trả lời câu hỏi triệu chứng.
+   *
+   * Gửi `value` (cụm mô tả đầy đủ, bám từ ngữ trong dữ liệu bệnh) để backend chấm
+   * điểm chính xác, nhưng bong bóng chat chỉ hiện `label` ngắn gọn cho dễ đọc.
+   *
+   * Nút "Không rõ" có value rỗng → gửi câu nói rõ là không biết, để backend ghi
+   * nhận đã hỏi chiều này rồi và chuyển sang hỏi chiều khác thay vì hỏi lại.
+   */
+  function handleOptionClick(msgId: number, option: SymptomOption) {
+    if (loading) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, choicesUsed: true } : m)),
+    );
+    void handleSend(option.value || "tôi không rõ ý này", option.label);
+  }
+
+  /**
    * @param text  nội dung thật sự gửi lên API
    * @param label nội dung hiện trong bong bóng tin của người dùng (mặc định = text).
    *   Tách ra để thẻ bệnh hiện "Đạo ôn lá" thay vì cả câu mô tả ghép từ keyFeatures.
@@ -541,16 +575,18 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const { reply, products, diagnosis, sources, diseaseChoices } = await apiPost<{
-        reply: string;
-        products?: ChatProduct[];
-        diagnosis?: Diagnosis;
-        sources?: string[];
-        diseaseChoices?: DiseaseChoice[];
-      }>("/chatbot/message", {
-        messages: history,
-        ...(comparedProductIds?.length ? { comparedProductIds } : {}),
-      });
+      const { reply, products, diagnosis, sources, diseaseChoices, symptomOptions } =
+        await apiPost<{
+          reply: string;
+          products?: ChatProduct[];
+          diagnosis?: Diagnosis;
+          sources?: string[];
+          diseaseChoices?: DiseaseChoice[];
+          symptomOptions?: SymptomOption[];
+        }>("/chatbot/message", {
+          messages: history,
+          ...(comparedProductIds?.length ? { comparedProductIds } : {}),
+        });
       setMessages((prev) => [
         ...prev,
         {
@@ -562,6 +598,7 @@ export default function ChatbotWidget() {
           diagnosis,
           sources,
           diseaseChoices,
+          symptomOptions,
         },
       ]);
     } catch (err) {
@@ -817,6 +854,32 @@ export default function ChatbotWidget() {
                       {msg.role === "bot" ? <RichText text={msg.text} /> : msg.text}
                     </div>
                   )}
+
+                  {/* Nút trả lời — khi bot hỏi thêm một chiều triệu chứng. Cho bấm
+                      thay vì bắt gõ: giá trị gửi lên luôn là cụm chuẩn nên chấm
+                      điểm ổn định hơn người dùng tự tả. Ẩn sau khi đã bấm.
+
+                      Xếp DỌC mỗi lựa chọn một dòng (không phải "pill" tràn dòng):
+                      nhãn triệu chứng dài như "Hình thoi, hai đầu nhọn (như mắt
+                      én)" bị xuống dòng giữa chừng thì rất khó đọc và khó bấm
+                      trúng trên điện thoại — đúng thứ tài liệu mục 19 dặn. */}
+                  {msg.symptomOptions &&
+                    msg.symptomOptions.length > 0 &&
+                    !msg.choicesUsed && (
+                      <div className="mt-2 w-full space-y-1.5">
+                        {msg.symptomOptions.map((opt) => (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => handleOptionClick(msg.id, opt)}
+                            className="w-full rounded-xl border border-[#007e42]/25 bg-white px-3.5 py-2.5 text-left text-[13px] font-medium leading-snug text-gray-700 transition hover:border-[#007e42] hover:bg-emerald-50 hover:text-[#00693a] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                   {/* Thẻ bệnh mời chọn — khi bot chưa đủ căn cứ chốt bệnh. Ẩn sau
                       khi người dùng đã chọn 1 thẻ (choicesUsed). */}

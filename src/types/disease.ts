@@ -1,7 +1,7 @@
 import type { ProductImage } from "./product";
 
 /**
- * Shape khớp với Disease entity của backend (đã strip embedding ở API công khai).
+ * Shape khớp với Disease entity của backend.
  * Xem backend/src/diseases/entities/disease.entity.ts
  */
 export interface Disease {
