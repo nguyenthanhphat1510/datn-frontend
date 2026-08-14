@@ -79,7 +79,7 @@ export default function Footer() {
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="relative flex h-10 w-10 overflow-hidden rounded-xl bg-white/20 shadow-inner ring-1 ring-white/30">
-                <Image src="/caylua.jpg" alt="TP Agri Logo" fill className="object-cover" />
+                <Image src="/caylua.jpg" alt="TP Agri Logo" fill sizes="40px" className="object-cover" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-extrabold leading-none tracking-tight">

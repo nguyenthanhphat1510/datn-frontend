@@ -282,10 +282,17 @@ function DiagnosisCard({ diagnosis }: { diagnosis: Diagnosis }) {
 }
 
 /* ───────── Thẻ dấu hiệu để người dùng đối chiếu & chọn ─────────
-   Hiện khi bot chưa đủ căn cứ chốt bệnh. KHÔNG hiện tên bệnh: người dùng chọn dựa
-   trên ảnh + dấu hiệu giống ruộng nhà mình, không phải dựa vào tên bệnh họ đoán
-   sẵn — tránh việc đọc thấy tên quen thì bấm luôn mà không đối chiếu. Cũng không
-   hiện % hay thuốc vì chưa chốt được bệnh. */
+   Hiện khi bot chưa đủ căn cứ chốt bệnh. Không hiện % hay thuốc vì chưa chốt được bệnh.
+
+   CÓ hiện tên bệnh (đây là chỗ đã đổi). Bản cũ giấu tên để ép người dùng đối chiếu
+   dấu hiệu thay vì bấm theo cái tên nghe quen. Đổi lại vì bấm thẻ giờ là CHỐT LUÔN
+   bệnh đó (xem replyChosenDisease ở backend) — bắt người ta ra quyết định cuối mà
+   không cho biết đang chọn bệnh gì thì vừa khó hiểu, vừa không đối chiếu được với
+   điều họ đã nghe từ cán bộ kỹ thuật hay hàng xóm.
+
+   Cách giữ lại ý tốt của bản cũ: tên nằm ở tiêu đề nhưng DẤU HIỆU vẫn là khối chữ
+   đậm chiếm phần lớn thẻ, và nút hành động vẫn nói theo dấu hiệu ("Ruộng tôi giống
+   thế này") chứ không phải theo tên bệnh. */
 function DiseaseChoiceCard({
   choice,
   disabled,
@@ -315,6 +322,13 @@ function DiseaseChoiceCard({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* Tên bệnh — tiêu đề thẻ. Người dùng cần biết mình sắp chốt bệnh gì.
+            Để MÀU ĐEN, không lấy màu xanh thương hiệu: màu xanh trong thẻ này dành
+            riêng cho dòng hành động ở dưới cùng ("Ruộng tôi giống thế này →"). Hai
+            dòng cùng màu cùng đậm thì mắt không phân biệt được đâu là tiêu đề, đâu
+            là chỗ bấm. */}
+        <h4 className="mb-1.5 text-[15px] font-bold text-gray-900">{choice.name}</h4>
+
         {/* Nội dung dấu hiệu để đậm & to hơn nhãn — đây mới là thứ người dùng cần
             đọc để đối chiếu với ruộng, nhãn chỉ là chú thích. */}
         <dl className="space-y-1 text-[13px] leading-relaxed">
@@ -502,21 +516,23 @@ export default function ChatbotWidget() {
     ]);
   }
 
-  /* Người dùng bấm 1 thẻ → gửi mô tả đặc trưng lên như một tin nhắn, và ẩn nhóm
-     thẻ đi để không bấm lại nhầm.
+  /* Người dùng bấm 1 thẻ → gửi `choice.query` (tiền tố + slug bệnh) lên, và ẩn
+     nhóm thẻ đi để không bấm lại nhầm. Backend trả thẳng bệnh đó, không chẩn lại.
 
-     Bong bóng hiện DẤU HIỆU đã chọn, không phải tên bệnh: thẻ vốn không hiện tên
-     nên người dùng chọn theo dấu hiệu; hiện tên bệnh ở đây sẽ như thể họ đã tự
-     chẩn đoán, và lịch sử chat đọc lại cũng không khớp với cái họ vừa bấm. */
+     Bong bóng nêu TÊN BỆNH kèm dấu hiệu đã chọn, cho khớp đúng cái thẻ họ vừa bấm
+     (thẻ giờ có hiện tên — xem DiseaseChoiceCard). Nêu cả hai vì đọc lại lịch sử
+     chat thì tên cho biết đã chốt bệnh gì, còn dấu hiệu cho biết vì sao chốt vậy. */
   function handleChoiceClick(msgId: number, choice: DiseaseChoice) {
     if (loading) return;
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, choicesUsed: true } : m)),
     );
-    const label = `Ruộng tôi: ${choice.viTri}, ${choice.hinhDang}, ${choice.mauSac}`;
-    // Nhãn hiển thị nêu cả giai đoạn cho khớp thẻ người dùng vừa đọc; còn
-    // choice.query (gửi lên API) vẫn chỉ 3 chiều — xem toDiseaseChoices.
-    void handleSend(choice.query, choice.giaiDoan ? `${label} (${choice.giaiDoan})` : label);
+    const dauHieu = `${choice.viTri}, ${choice.hinhDang}, ${choice.mauSac}`;
+    // Nhãn hiển thị nêu cả giai đoạn cho khớp đúng thẻ người dùng vừa đọc.
+    const label = `Ruộng tôi giống ${choice.name}: ${dauHieu}${
+      choice.giaiDoan ? ` (${choice.giaiDoan})` : ""
+    }`;
+    void handleSend(choice.query, label);
   }
 
   /**

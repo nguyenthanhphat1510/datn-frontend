@@ -157,8 +157,12 @@ function AddressAutocomplete({
   value: string;
   error?: string;
   onChange: (v: string) => void;
-  /** Gọi sau khi resolve placeId → trả địa chỉ chi tiết (lat/lon/quận/thành phố). */
-  onResolve?: (detail: PlaceDetail | null) => void;
+  /**
+   * Gọi sau khi resolve placeId → trả địa chỉ chi tiết (lat/lon/quận/thành phố)
+   * kèm `pickedText` là chuỗi vừa được đổ vào ô nhập (để cha đối chiếu xem người
+   * dùng có sửa tay sau đó không).
+   */
+  onResolve?: (detail: PlaceDetail | null, pickedText: string) => void;
 }) {
   const [predictions, setPredictions] = useState<AddressPrediction[]>([]);
   const [open, setOpen] = useState(false);
@@ -223,8 +227,14 @@ function AddressAutocomplete({
     if (onResolve) {
       setResolving(true);
       resolvePlace(p.placeId)
-        .then((detail) => onResolve(detail))
-        .catch(() => onResolve(null))
+        // Trả kèm `p.text` — ĐÚNG chuỗi vừa đổ vào ô nhập. Cha cần nó để biết
+        // người dùng có sửa tay địa chỉ sau khi chọn hay không.
+        //
+        // Không so bằng `detail.address` được: gogoduk resolve trả chuỗi DÀI HƠN
+        // suggest (thêm ", Việt Nam" ở cuối), nên so với nội dung ô nhập thì
+        // không bao giờ khớp → toạ độ bị vứt ở MỌI lần chọn địa chỉ.
+        .then((detail) => onResolve(detail, p.text))
+        .catch(() => onResolve(null, p.text))
         .finally(() => setResolving(false));
     }
   }
@@ -327,8 +337,11 @@ export default function AddressForm({
   errors: Partial<Record<keyof AddressFormValues, string>>;
   showSave: boolean;
   onChange: (next: AddressFormValues) => void;
-  /** Nhận địa chỉ chi tiết (lat/lon/quận/thành phố) khi user chọn 1 gợi ý. */
-  onResolve?: (detail: PlaceDetail | null) => void;
+  /**
+   * Nhận địa chỉ chi tiết (lat/lon/quận/thành phố) khi user chọn 1 gợi ý,
+   * kèm chuỗi địa chỉ đã đổ vào ô nhập.
+   */
+  onResolve?: (detail: PlaceDetail | null, pickedText: string) => void;
 }) {
   function set<K extends keyof AddressFormValues>(
     key: K,

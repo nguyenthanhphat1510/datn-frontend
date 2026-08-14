@@ -11,7 +11,7 @@ const faqs = [
   },
   {
     q: "TP Agri có những phương thức thanh toán nào?",
-    a: "Chúng tôi hỗ trợ thanh toán khi nhận hàng (COD), ví MoMo và VNPay. Với MoMo/VNPay bạn sẽ được chuyển sang cổng thanh toán để hoàn tất.",
+    a: "Chúng tôi hỗ trợ thanh toán khi nhận hàng (COD) và VNPay. Với VNPay bạn sẽ được chuyển sang cổng thanh toán để hoàn tất.",
   },
   {
     q: "Phí vận chuyển được tính như thế nào?",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/contexts/ToastContext";
 import { fmt } from "@/lib/format";
 import {
   getAddresses,
@@ -16,10 +17,10 @@ import { SHOP_LOCATION } from "@/lib/shop-location";
 import {
   createOrder,
   getVnpayUrl,
-  getMomoUrl,
+  getShippingFee,
   type CreateOrderInput,
+  type ShippingFeeResult,
 } from "@/services/orders";
-import { calcShippingFee } from "@/lib/shipping";
 import AddressForm, {
   EMPTY_ADDRESS,
   validateAddress,
@@ -28,6 +29,16 @@ import AddressForm, {
 
 /** Key tạm để truyền Order vừa tạo sang trang "đặt hàng thành công". */
 export const ORDER_SUCCESS_KEY = "last_order";
+
+/**
+ * Phí ship cơ bản — CHỈ dùng làm giá trị hiển thị tạm ở lượt render đầu, trước
+ * khi backend trả phí thật.
+ *
+ * Phải khớp BASE_FEE trong backend/src/common/shipping.ts. Không tính phí ở
+ * frontend nữa (backend chốt qua GET /orders/shipping-fee), nhưng vẫn cần một
+ * con số hợp lý để không hiện 0 ₫ trong lúc chờ mạng.
+ */
+const BASE_SHIPPING_FEE = 15_000;
 
 type Mode = "select" | "new"; // chọn từ sổ | nhập địa chỉ mới
 
@@ -109,7 +120,7 @@ function ITruck() {
 }
 
 /* Phương thức thanh toán (UI-only — backend chưa xử lý) */
-type PayMethod = "cod" | "vnpay" | "momo";
+type PayMethod = "cod" | "vnpay";
 
 const PAY_METHODS: {
   id: PayMethod;
@@ -130,15 +141,6 @@ const PAY_METHODS: {
     icon: (
       // eslint-disable-next-line @next/next/no-img-element
       <img src="/vnpay.png" alt="VNPAY" className="h-6 w-6 rounded object-contain" />
-    ),
-  },
-  {
-    id: "momo",
-    label: "Ví MoMo",
-    desc: "Thanh toán qua ví MoMo (Sandbox)",
-    icon: (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/momo.png" alt="MoMo" className="h-6 w-6 rounded object-contain" />
     ),
   },
 ];
@@ -198,6 +200,7 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { cart, loading: cartLoading, refresh } = useCart();
+  const { showToast } = useToast();
 
   // Sản phẩm được chọn từ giỏ (?items=id1,id2). Rỗng = đặt cả giỏ.
   const selectedProductIds = useMemo(() => {
@@ -216,6 +219,24 @@ export default function CheckoutPage() {
   >({});
   // Địa chỉ chi tiết (lat/lon/quận/thành phố) khi user chọn 1 gợi ý từ autocomplete.
   const [placeDetail, setPlaceDetail] = useState<PlaceDetail | null>(null);
+  // Chuỗi địa chỉ ĐÚNG LÚC user bấm chọn gợi ý — để biết sau đó họ có sửa tay
+  // không. Xem `toaDoConHopLe`.
+  const [pickedAddress, setPickedAddress] = useState("");
+
+  /**
+   * Toạ độ của `placeDetail` có còn dùng được cho địa chỉ đang gõ không.
+   *
+   * Chỉ kèm lat/lon khi ô địa chỉ vẫn ĐÚNG chuỗi đã chọn từ gợi ý — sửa tay xong
+   * mà vẫn gắn toạ độ cũ thì giao nhầm chỗ.
+   *
+   * ⚠️ So với `pickedAddress` (chuỗi hiện trong ô nhập), KHÔNG so với
+   * `placeDetail.address`: gogoduk /v1/place/resolve trả chuỗi dài hơn
+   * /v1/suggest — nó thêm ", Việt Nam" ở cuối. So nhầm sang đó thì không bao giờ
+   * khớp, và toạ độ bị vứt ở MỌI lần đặt hàng (chính là lỗi địa chỉ trong sổ có
+   * lat/lon = null).
+   */
+  const toaDoConHopLe = (diaChi: string) =>
+    placeDetail !== null && pickedAddress !== "" && pickedAddress === diaChi;
 
   const [note, setNote] = useState("");
   const [payMethod, setPayMethod] = useState<PayMethod>("cod");
@@ -271,18 +292,64 @@ export default function CheckoutPage() {
   );
 
   // Toạ độ hiệu dụng để tính phí ship:
-  // - mode "new": từ địa chỉ vừa resolve (placeDetail)
+  // - mode "new": từ địa chỉ vừa chọn ở gợi ý, và CHỈ khi ô nhập chưa bị sửa tay
+  //   — dùng cùng điều kiện với lúc gửi đơn, để phí xem trước đúng bằng phí bị
+  //   chốt (sửa tay thì bỏ toạ độ ở cả hai chỗ).
   // - mode "select": từ địa chỉ đang chọn trong sổ (nếu đã lưu lat/lon)
   const selectedAddr = addresses.find((a) => a._id === selectedId);
   const latLon =
     mode === "new"
-      ? { lat: placeDetail?.lat, lon: placeDetail?.lon }
+      ? toaDoConHopLe(form.address.trim())
+        ? { lat: placeDetail?.lat, lon: placeDetail?.lon }
+        : { lat: undefined, lon: undefined }
       : { lat: selectedAddr?.lat, lon: selectedAddr?.lon };
 
-  const { fee: shipping, distanceKm } = calcShippingFee(
-    latLon.lat,
-    latLon.lon,
-  );
+  /* ── Phí ship: HỎI BACKEND, không tự tính ──
+     Backend đo quãng đường thật qua gogoduk (API key ở server nên frontend không
+     gọi thẳng được), và cũng chính con số đó được chốt khi tạo đơn — hết cảnh
+     hai bên tự tính rồi lệch nhau.
+
+     Trong lúc chờ mạng thì giữ NGUYÊN phí cũ thay vì nhảy về 0: người dùng đang
+     nhìn dòng tổng tiền, cho nó nháy về 0 rồi lại nhảy lên trông như tính sai. */
+  // Khởi tạo bằng PHÍ CƠ BẢN chứ không phải 0: lượt render đầu (trước khi API
+  // trả về) mà hiện "Phí vận chuyển: 0 ₫" thì khách đọc nhầm là được miễn ship,
+  // rồi con số nhảy lên sau một nhịp — nhìn như trang tự đổi giá.
+  const [shippingInfo, setShippingInfo] = useState<ShippingFeeResult>({
+    fee: BASE_SHIPPING_FEE,
+    distanceKm: null,
+    source: "haversine",
+    isFar: false,
+  });
+  const [feeLoading, setFeeLoading] = useState(false);
+
+  const { lat: shipLat, lon: shipLon } = latLon;
+
+  useEffect(() => {
+    let active = true;
+    // setState nằm trong callback bất đồng bộ (không gọi thẳng trong thân
+    // effect) để tránh cascading render — cùng quy ước với CartContext.
+    Promise.resolve()
+      .then(() => {
+        if (active) setFeeLoading(true);
+      })
+      .then(() => getShippingFee(shipLat, shipLon))
+      .then((res) => {
+        if (active) setShippingInfo(res);
+      })
+      .catch(() => {
+        /* lỗi mạng → giữ phí đang hiện, người dùng vẫn đặt hàng được vì backend
+           mới là nơi chốt phí thật lúc tạo đơn */
+      })
+      .finally(() => {
+        if (active) setFeeLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [shipLat, shipLon]);
+
+  const shipping = shippingInfo.fee;
+  const distanceKm = shippingInfo.distanceKm;
   const total = subtotal + shipping;
 
   // Có toạ độ để xác định vị trí giao? (đúng cho cả nhập mới lẫn chọn từ sổ)
@@ -302,8 +369,8 @@ export default function CheckoutPage() {
     setError("");
 
     // Dựng body: ưu tiên addressId nếu đang chọn từ sổ, ngược lại nhập tay.
-    // COD, VNPay và MoMo đều được gửi lên backend.
-    const paymentMethod = payMethod; // "cod" | "vnpay" | "momo"
+    // COD và VNPay đều được gửi lên backend.
+    const paymentMethod = payMethod; // "cod" | "vnpay"
 
     // Gửi kèm danh sách sản phẩm đã chọn (nếu có) để backend chỉ đặt các item đó.
     const productIds =
@@ -324,11 +391,8 @@ export default function CheckoutPage() {
         return;
       }
       setFormErrors({});
-      // Chỉ kèm lat/lon khi địa chỉ form đúng là cái vừa resolve (chưa sửa tay).
-      const resolved =
-        placeDetail && placeDetail.address === form.address.trim()
-          ? placeDetail
-          : null;
+      // Chỉ kèm lat/lon khi địa chỉ form đúng là cái vừa chọn (chưa sửa tay).
+      const resolved = toaDoConHopLe(form.address.trim()) ? placeDetail : null;
       body = {
         shippingAddress: {
           fullName: form.fullName.trim(),
@@ -347,10 +411,7 @@ export default function CheckoutPage() {
     try {
       // Lưu vào sổ nếu user chọn (best-effort, không chặn đặt hàng nếu lỗi).
       if (mode === "new" && form.saveToBook) {
-        const resolved =
-          placeDetail && placeDetail.address === form.address.trim()
-            ? placeDetail
-            : null;
+        const resolved = toaDoConHopLe(form.address.trim()) ? placeDetail : null;
         try {
           await createAddress({
             fullName: form.fullName.trim(),
@@ -369,11 +430,29 @@ export default function CheckoutPage() {
 
       // ── Cổng online: lấy URL thanh toán rồi redirect ──
       // Đơn đã được tạo (chưa thanh toán), giỏ đã được backend clear.
-      if (paymentMethod === "vnpay" || paymentMethod === "momo") {
-        const { paymentUrl } =
-          paymentMethod === "vnpay"
-            ? await getVnpayUrl(order._id)
-            : await getMomoUrl(order._id);
+      if (paymentMethod === "vnpay") {
+        // Từ đây trở đi KHÔNG được báo "Đặt hàng thất bại" nữa: đơn đã tạo xong
+        // và giỏ đã bị backend xóa. Bắt lỗi RIÊNG khâu lấy link thanh toán —
+        // gộp chung với createOrder ở catch ngoài thì khách thấy "thất bại", bấm
+        // lại, và lần này POST /orders báo "Giỏ hàng đang trống" vì giỏ đã sạch
+        // từ lần bấm trước → kẹt hẳn, không đặt được mà cũng không trả được tiền.
+        let paymentUrl: string;
+        try {
+          ({ paymentUrl } = await getVnpayUrl(order._id));
+        } catch (err) {
+          // Đơn vẫn còn nguyên (pending / chưa thanh toán) → đẩy khách sang trang
+          // đơn hàng để bấm "Thanh toán lại", thay vì kẹt ở trang này.
+          await refresh(); // giỏ đã bị clear ở backend → đồng bộ lại badge
+          const ly = err instanceof Error ? err.message : "lỗi không rõ";
+          showToast(
+            `Đơn hàng đã được tạo nhưng chưa lấy được link thanh toán (${ly}).\n` +
+              `Bạn vào "Đơn hàng của tôi" bấm "Thanh toán lại" để trả tiền nhé.`,
+            "error",
+          );
+          router.replace("/don-hang");
+          return; // không set busy=false — đang chuyển trang
+        }
+
         await refresh(); // đồng bộ giỏ trước khi rời trang
         window.location.href = paymentUrl; // điều hướng sang cổng thanh toán
         return; // không set busy=false — đang chuyển trang
@@ -388,7 +467,11 @@ export default function CheckoutPage() {
       await refresh(); // đồng bộ giỏ (backend đã clear) → badge về 0
       router.replace("/dat-hang-thanh-cong");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Đặt hàng thất bại");
+      // Tới được đây là createOrder THẤT BẠI → đơn chưa tạo, giỏ còn nguyên,
+      // bấm lại được. Khác hẳn ca lỗi link thanh toán ở trên.
+      const msg = err instanceof Error ? err.message : "Đặt hàng thất bại";
+      setError(msg); // giữ chữ đỏ tại chỗ để khách còn thấy khi cuộn lại form
+      showToast(msg, "error");
       setBusy(false);
     }
   }
@@ -516,30 +599,86 @@ export default function CheckoutPage() {
                   errors={formErrors}
                   showSave={!!user}
                   onChange={setForm}
-                  onResolve={setPlaceDetail}
+                  onResolve={(detail, pickedText) => {
+                    setPlaceDetail(detail);
+                    setPickedAddress(pickedText);
+                  }}
                 />
               )}
 
-              {/* Vị trí giao hàng đã xác định — hiện cho cả nhập mới lẫn chọn từ sổ */}
-              {(hasGeo || (shipping === 0 && (selectedId || placeDetail))) && (
-                <div className="mt-3 rounded-xl border-2 border-[#007e42]/40 bg-[#007e42]/10 px-4 py-3.5 text-sm text-gray-700 shadow-sm">
-                  <p className="mb-1.5 flex items-center gap-1.5 font-bold text-[#007e42]">
-                    <ICheck />
-                    Đã xác định vị trí giao hàng
-                  </p>
+              {/* Thông tin giao hàng — hiện khi đã chọn/nhập xong địa chỉ.
+                  KHÔNG còn đòi `hasGeo` như trước: địa chỉ trong sổ lưu từ trước
+                  khi có tính năng toạ độ thì lat/lon = null, mà đòi hasGeo thì cả
+                  khối này biến mất — khách không thấy quãng đường lẫn phí ship,
+                  tưởng trang bị lỗi. Giờ vẫn hiện, chỉ đổi nội dung theo việc có
+                  toạ độ hay không. */}
+              {(selectedId || placeDetail) && (
+                <div
+                  className={`mt-3 rounded-xl border-2 px-4 py-3.5 text-sm text-gray-700 shadow-sm ${
+                    hasGeo
+                      ? "border-[#007e42]/40 bg-[#007e42]/10"
+                      : "border-amber-400/60 bg-amber-50"
+                  }`}
+                >
+                  {hasGeo ? (
+                    <p className="mb-1.5 flex items-center gap-1.5 font-bold text-[#007e42]">
+                      <ICheck />
+                      Đã xác định vị trí giao hàng
+                    </p>
+                  ) : (
+                    <p className="mb-1.5 font-bold text-amber-700">
+                      Địa chỉ này chưa có toạ độ
+                    </p>
+                  )}
+
                   {geoArea && (
                     <p className="font-medium text-gray-700">{geoArea}</p>
                   )}
-                  {distanceKm != null && (
+
+                  {distanceKm != null ? (
                     <div className="mt-2.5 flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 shadow-sm ring-1 ring-gray-200">
                         <ITruck />
-                        Cách kho ~{distanceKm.toFixed(1)} km
+                        {/* 'route' = quãng đường xe chạy thật (gogoduk) → nói
+                            "quãng đường" và bỏ dấu ~. 'haversine' = dự phòng
+                            đường chim bay → giữ ~ và nói rõ là đường chim bay,
+                            không để khách tưởng đó là số km xe sẽ chạy. */}
+                        {shippingInfo.source === "route"
+                          ? `Quãng đường ${distanceKm.toFixed(1)} km`
+                          : `Cách kho ~${distanceKm.toFixed(1)} km đường chim bay`}
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-                        Phí ship: {fmt(shipping)}
+                        {feeLoading
+                          ? "Đang tính phí ship..."
+                          : `Phí ship: ${fmt(shipping)}`}
                       </span>
                     </div>
+                  ) : (
+                    // Không có toạ độ → không đo được quãng đường, phí về mức cơ
+                    // bản. Nói rõ cách sửa: chọn lại địa chỉ từ gợi ý để lấy toạ độ.
+                    <div className="mt-2.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#007e42] px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                        {feeLoading
+                          ? "Đang tính phí ship..."
+                          : `Phí ship tạm tính: ${fmt(shipping)}`}
+                      </span>
+                      <p className="mt-2 text-xs leading-relaxed text-amber-800">
+                        Chưa tính được quãng đường nên đang lấy phí cơ bản. Bạn
+                        chọn lại địa chỉ từ danh sách gợi ý (nhập rồi bấm vào một
+                        dòng hiện ra) để tính phí đúng theo quãng đường nhé.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Cảnh báo đơn ở xa — báo TRƯỚC khi khách bấm đặt hàng, chứ
+                      không để họ tự phát hiện phí ship gấp mấy lần bình thường
+                      ở dòng tổng tiền. `isFar` do backend quyết định theo cùng
+                      bảng giá nó dùng để chốt phí. */}
+                  {shippingInfo.isFar && !feeLoading && (
+                    <p className="mt-2.5 rounded-lg bg-amber-100 px-3 py-2 text-xs leading-relaxed font-medium text-amber-900">
+                      Địa chỉ này cách kho hơn 50 km nên phí vận chuyển cao hơn
+                      bình thường. Bạn cân nhắc trước khi đặt nhé.
+                    </p>
                   )}
                 </div>
               )}
@@ -553,7 +692,7 @@ export default function CheckoutPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {PAY_METHODS.map((m) => {
                   const checked = payMethod === m.id;
-                  const disabled = false; // COD + VNPay + MoMo đều khả dụng
+                  const disabled = false; // COD + VNPay đều khả dụng
                   return (
                     <button
                       key={m.id}

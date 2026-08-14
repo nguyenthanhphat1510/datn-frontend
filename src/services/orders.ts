@@ -18,7 +18,7 @@ export interface OrderItem {
   subtotal: number;
 }
 
-export type PaymentMethod = "cod" | "vnpay" | "momo";
+export type PaymentMethod = "cod" | "vnpay";
 export type PaymentStatus = "unpaid" | "paid" | "failed";
 
 export interface Order {
@@ -58,6 +58,36 @@ export function getOrders(): Promise<Order[]> {
   return apiGet<Order[]>("/orders", undefined, { auth: true });
 }
 
+export interface ShippingFeeResult {
+  fee: number;
+  /** Quãng đường km; null khi địa chỉ chưa có toạ độ. */
+  distanceKm: number | null;
+  /** 'route' = đường đi thật từ gogoduk; 'haversine' = dự phòng đường chim bay. */
+  source: "route" | "haversine";
+  /** Đơn ở xa (>50km) → hiện cảnh báo phí ship cao hơn bình thường. */
+  isFar: boolean;
+}
+
+/**
+ * GET /orders/shipping-fee — hỏi backend phí ship cho 1 toạ độ.
+ *
+ * Frontend KHÔNG tự tính nữa: khoảng cách lấy từ gogoduk mà API key nằm ở
+ * server. Hỏi backend cũng đảm bảo số hiện trên màn hình đúng bằng số backend
+ * chốt lúc tạo đơn — trước đây hai bên tự tính riêng nên phải giữ đồng bộ tay.
+ */
+export function getShippingFee(
+  lat?: number,
+  lon?: number,
+): Promise<ShippingFeeResult> {
+  const params =
+    lat != null && lon != null
+      ? { lat: String(lat), lon: String(lon) }
+      : undefined;
+  return apiGet<ShippingFeeResult>("/orders/shipping-fee", params, {
+    auth: true,
+  });
+}
+
 /**
  * POST /orders/:id/vnpay-url — lấy URL cổng thanh toán VNPay cho đơn hàng.
  * Frontend redirect khách sang URL này.
@@ -88,27 +118,4 @@ export function verifyVnpayReturn(
 ): Promise<PaymentReturnResult> {
   const qs = search.startsWith("?") ? search.slice(1) : search;
   return apiGet<PaymentReturnResult>(`/orders/vnpay-return?${qs}`);
-}
-
-/**
- * POST /orders/:id/momo-url — backend gọi MoMo tạo giao dịch, trả payUrl.
- * Frontend redirect khách sang URL này.
- */
-export function getMomoUrl(orderId: string): Promise<{ paymentUrl: string }> {
-  return apiPost<{ paymentUrl: string }>(
-    `/orders/${orderId}/momo-url`,
-    {},
-    { auth: true },
-  );
-}
-
-/**
- * GET /orders/momo-return — gửi nguyên query params MoMo trả về để backend
- * verify chữ ký và cập nhật trạng thái thanh toán.
- */
-export function verifyMomoReturn(
-  search: string,
-): Promise<PaymentReturnResult> {
-  const qs = search.startsWith("?") ? search.slice(1) : search;
-  return apiGet<PaymentReturnResult>(`/orders/momo-return?${qs}`);
 }

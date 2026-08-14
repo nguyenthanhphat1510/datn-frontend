@@ -97,6 +97,11 @@ export default function AccountPage() {
   >({});
   // Toạ độ resolve được khi thêm/sửa (để lưu kèm, phục vụ tính phí ship).
   const [addrPlace, setAddrPlace] = useState<PlaceDetail | null>(null);
+  // Chuỗi địa chỉ đúng lúc user bấm chọn gợi ý — để biết sau đó có sửa tay không.
+  // Phải so với chuỗi NÀY chứ không phải `addrPlace.address`: gogoduk resolve
+  // trả chuỗi dài hơn suggest (thêm ", Việt Nam"), so nhầm thì không bao giờ
+  // khớp và toạ độ bị vứt ở mọi lần lưu địa chỉ.
+  const [addrPicked, setAddrPicked] = useState("");
   const [savingAddr, setSavingAddr] = useState(false);
   // _id đang bị xóa (để disable nút trong lúc gọi API).
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -106,6 +111,7 @@ export default function AccountPage() {
     setAddrForm({ ...EMPTY_ADDRESS, saveToBook: false });
     setAddrErrors({});
     setAddrPlace(null);
+    setAddrPicked("");
     setError("");
   }
 
@@ -124,6 +130,10 @@ export default function AccountPage() {
         ? ({ address: addr.address, lat: addr.lat, lon: addr.lon } as PlaceDetail)
         : null,
     );
+    // Coi địa chỉ đang lưu như "vừa chọn": mở form sửa mà không đụng ô địa chỉ
+    // thì toạ độ cũ phải được giữ. Bỏ dòng này là mỗi lần sửa tên/SĐT lại làm
+    // mất toạ độ của địa chỉ vốn đã có.
+    setAddrPicked(addr.lat != null && addr.lon != null ? addr.address : "");
     setError("");
   }
 
@@ -131,6 +141,7 @@ export default function AccountPage() {
     setAddrEditing(null);
     setAddrErrors({});
     setAddrPlace(null);
+    setAddrPicked("");
   }
 
   async function saveAddress() {
@@ -143,9 +154,9 @@ export default function AccountPage() {
     setSavingAddr(true);
     setError("");
 
-    // Chỉ kèm lat/lon khi đúng địa chỉ vừa resolve (chưa sửa tay sau đó).
+    // Chỉ kèm lat/lon khi đúng địa chỉ vừa chọn từ gợi ý (chưa sửa tay sau đó).
     const resolved =
-      addrPlace && addrPlace.address === addrForm.address.trim()
+      addrPlace && addrPicked !== "" && addrPicked === addrForm.address.trim()
         ? addrPlace
         : null;
     const payload = {
@@ -443,7 +454,10 @@ export default function AccountPage() {
                 errors={addrErrors}
                 showSave={false}
                 onChange={setAddrForm}
-                onResolve={setAddrPlace}
+                onResolve={(detail, pickedText) => {
+                  setAddrPlace(detail);
+                  setAddrPicked(pickedText);
+                }}
               />
               <div className="mt-4 flex gap-2">
                 <button
@@ -489,7 +503,10 @@ export default function AccountPage() {
                       errors={addrErrors}
                       showSave={false}
                       onChange={setAddrForm}
-                      onResolve={setAddrPlace}
+                      onResolve={(detail, pickedText) => {
+                        setAddrPlace(detail);
+                        setAddrPicked(pickedText);
+                      }}
                     />
                     <div className="mt-4 flex gap-2">
                       <button

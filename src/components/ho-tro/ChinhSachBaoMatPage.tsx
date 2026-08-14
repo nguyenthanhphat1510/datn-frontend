@@ -25,7 +25,7 @@ const sections: PolicySection[] = [
   {
     heading: "Bảo mật thông tin",
     paragraphs: [
-      "Mật khẩu của bạn được mã hoá và không được lưu ở dạng văn bản thuần. Chúng tôi áp dụng các biện pháp kỹ thuật hợp lý để bảo vệ dữ liệu khỏi truy cập trái phép. Thông tin thanh toán được xử lý qua các cổng thanh toán uy tín (MoMo, VNPay) — TP Agri không lưu trữ thông tin thẻ của bạn.",
+      "Mật khẩu của bạn được mã hoá và không được lưu ở dạng văn bản thuần. Chúng tôi áp dụng các biện pháp kỹ thuật hợp lý để bảo vệ dữ liệu khỏi truy cập trái phép. Thông tin thanh toán được xử lý qua cổng thanh toán uy tín (VNPay) — TP Agri không lưu trữ thông tin thẻ của bạn.",
     ],
   },
   {

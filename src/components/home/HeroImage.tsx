@@ -103,12 +103,11 @@ export default function HeroImage() {
               Đồng Hành Cùng
               <br />
               <span
-                className="bg-clip-text text-transparent uppercase font-black"
+                className="bg-clip-text text-transparent uppercase font-black animate-shimmer-text"
                 style={{
                   backgroundImage:
                     "linear-gradient(90deg, #6ee7b7 0%, #34d399 20%, #a3e635 55%, #fde68a 80%, #6ee7b7 100%)",
                   backgroundSize: "200% auto",
-                  animation: "shimmerText 7s linear infinite",
                 }}
               >
                 3 Thời Kỳ Vàng
@@ -248,18 +247,6 @@ export default function HeroImage() {
 
         </div>
       </div>
-
-      {/* Keyframes */}
-      <style>{`
-        @keyframes shimmerText {
-          0%   { background-position: 0% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes floatCard {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-6px); }
-        }
-      `}</style>
 
       {/* Wave separator */}
       <div className="absolute bottom-0 left-0 w-full leading-none z-10 translate-y-1 pointer-events-none">

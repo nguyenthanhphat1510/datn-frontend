@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar/Navbar";
 import Footer from "../components/Footer/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { ToastProvider } from "@/contexts/ToastContext";
 import ChatbotWidget from "../components/chatbot/ChatbotWidget";
 
 const geistSans = Geist({
@@ -33,14 +34,18 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <CartProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <ChatbotWidget />
-          </CartProvider>
-        </AuthProvider>
+        {/* ToastProvider bọc NGOÀI Auth/Cart: các provider đó cũng cần bắn toast
+            (vd hết phiên đăng nhập), mà hook chỉ gọi được từ cây con bên trong. */}
+        <ToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <ChatbotWidget />
+            </CartProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

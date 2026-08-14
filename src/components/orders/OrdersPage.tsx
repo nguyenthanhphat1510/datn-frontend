@@ -4,8 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { fmt } from "@/lib/format";
-import { getOrders, type Order, type OrderItem } from "@/services/orders";
+import {
+  getOrders,
+  getVnpayUrl,
+  type Order,
+  type OrderItem,
+} from "@/services/orders";
 import { getReviewedProductIds } from "@/services/reviews";
 import ReviewForm from "@/components/product-detail/ReviewForm";
 
@@ -23,7 +29,8 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const PAY_METHOD: Record<string, { label: string; icon: string | null }> = {
   cod: { label: "COD", icon: null },
   vnpay: { label: "VNPAY", icon: "/vnpay.png" },
-  momo: { label: "MoMo", icon: "/momo.png" },
+  // Cổng MoMo đã gỡ — giữ nhãn để đơn cũ trong DB vẫn hiển thị đọc được.
+  momo: { label: "MoMo", icon: null },
 };
 
 /* Thẻ phương thức thanh toán: logo (nếu có) + tên. Dùng ở dải giao hàng. */
@@ -158,10 +165,37 @@ function OrderItemRow({
    Một card đơn hàng kiểu Shopee — item hiện ngay trên card.
 ───────────────────────────────────────── */
 function OrderCard({ order, index }: { order: Order; index: number }) {
+  const { showToast } = useToast();
   const status = STATUS[order.status] ?? { label: order.status, cls: "text-gray-500" };
   const delivered = order.status === "delivered";
   const createdAt = new Date(order.createdAt).toLocaleDateString("vi-VN");
   const totalQty = order.items.reduce((s, i) => s + i.quantity, 0);
+
+  const [paying, setPaying] = useState(false);
+
+  /* Đơn cổng online còn nợ tiền → cho trả lại.
+     Điều kiện khớp đúng các chốt chặn của backend getVnpayUrl: phải là vnpay,
+     chưa PAID, và chưa bị hủy (đơn hủy đã hoàn kho, backend từ chối thu tiếp).
+     Hiện nút mà backend từ chối thì chỉ tổ làm khách bực. */
+  const canRetryPayment =
+    order.paymentMethod === "vnpay" &&
+    order.paymentStatus !== "paid" &&
+    order.status !== "cancelled";
+
+  async function handleRetryPayment() {
+    if (paying) return;
+    setPaying(true);
+    try {
+      const { paymentUrl } = await getVnpayUrl(order._id);
+      window.location.href = paymentUrl; // sang cổng — không tắt cờ paying
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : "Không lấy được link thanh toán",
+        "error",
+      );
+      setPaying(false);
+    }
+  }
 
   // productId đã đánh giá trong đơn này → ẩn nút "Đánh giá"
   const [reviewedIds, setReviewedIds] = useState<string[]>([]);
@@ -225,18 +259,36 @@ function OrderCard({ order, index }: { order: Order; index: number }) {
         </div>
       )}
 
-      {/* Footer: phí ship + tổng tiền */}
-      <div className="flex flex-col items-end gap-0.5 border-t border-gray-300 bg-gray-200 px-4 py-3">
-        <span className="text-xs text-gray-400">
-          Phí vận chuyển: {order.shippingFee > 0 ? fmt(order.shippingFee) : "Miễn phí"}
-        </span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm text-gray-500">
-            Thành tiền ({totalQty} sản phẩm):
+      {/* Footer: phí ship + tổng tiền (+ nút trả tiền lại nếu đơn còn nợ) */}
+      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-gray-300 bg-gray-200 px-4 py-3">
+        {/* Nút nằm BÊN TRÁI, tách khỏi cụm tiền bên phải: để cạnh "Thành tiền"
+            thì dễ bấm nhầm khi khách chỉ định liếc xem hết bao nhiêu. */}
+        {canRetryPayment ? (
+          <button
+            type="button"
+            onClick={handleRetryPayment}
+            disabled={paying}
+            className="rounded-lg bg-[#007e42] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#005f32] active:scale-95 disabled:opacity-60"
+          >
+            {paying ? "Đang mở cổng..." : "Thanh toán lại"}
+          </button>
+        ) : (
+          // Ô rỗng giữ chỗ để cụm tiền luôn dạt phải, dù đơn có nút hay không.
+          <span />
+        )}
+
+        <div className="flex flex-col items-end gap-0.5">
+          <span className="text-xs text-gray-400">
+            Phí vận chuyển: {order.shippingFee > 0 ? fmt(order.shippingFee) : "Miễn phí"}
           </span>
-          <span className="text-lg font-extrabold text-[#007e42]">
-            {fmt(order.total)}
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm text-gray-500">
+              Thành tiền ({totalQty} sản phẩm):
+            </span>
+            <span className="text-lg font-extrabold text-[#007e42]">
+              {fmt(order.total)}
+            </span>
+          </div>
         </div>
       </div>
     </div>

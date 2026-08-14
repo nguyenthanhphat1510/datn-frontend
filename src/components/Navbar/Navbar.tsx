@@ -327,6 +327,7 @@ export default function Navbar() {
               src="/caylua.jpg"
               alt="TP Agri Logo"
               fill
+              sizes="40px"
               className="object-cover"
             />
           </div>

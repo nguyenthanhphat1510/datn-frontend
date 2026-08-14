@@ -110,24 +110,6 @@ function IArrowRight() {
   );
 }
 
-function ITag() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-      <line x1="7" y1="7" x2="7.01" y2="7" />
-    </svg>
-  );
-}
-
 function IShield() {
   return (
     <svg
@@ -343,67 +325,6 @@ function CartItemRow({
 }
 
 /* ─────────────────────────────────────────
-   Coupon Input (UI tĩnh — chưa nối backend)
-───────────────────────────────────────── */
-function CouponInput() {
-  const [code, setCode] = useState("");
-  const [applied, setApplied] = useState(false);
-  const [error, setError] = useState("");
-
-  function handleApply() {
-    if (!code.trim()) return;
-    if (code.trim().toUpperCase() === "AGRI10") {
-      setApplied(true);
-      setError("");
-    } else {
-      setError("Mã giảm giá không hợp lệ");
-      setApplied(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <ITag />
-          </span>
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
-              setError("");
-              setApplied(false);
-            }}
-            placeholder='Thử "AGRI10"'
-            className={`w-full rounded-lg border py-2 pl-9 pr-3 text-sm outline-none transition ${
-              applied
-                ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                : error
-                ? "border-red-300 bg-red-50"
-                : "border-gray-200 focus:border-[#007e42] focus:ring-1 focus:ring-[#007e42]/20"
-            }`}
-          />
-        </div>
-        <button
-          onClick={handleApply}
-          className="shrink-0 rounded-lg bg-[#007e42] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#005f32] active:scale-95"
-        >
-          Áp dụng
-        </button>
-      </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
-      {applied && (
-        <p className="text-xs font-medium text-emerald-600">
-          ✓ Đã áp dụng mã giảm 10%!
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────
    Order Summary
 ───────────────────────────────────────── */
 function OrderSummary({
@@ -441,14 +362,6 @@ function OrderSummary({
             Tính khi thanh toán
           </span>
         </div>
-      </div>
-
-      {/* Coupon */}
-      <div className="border-t border-gray-300 pt-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Mã giảm giá
-        </p>
-        <CouponInput />
       </div>
 
       {/* Total */}
@@ -526,7 +439,6 @@ function OrderSummary({
 /* Logo thanh toán (UI tĩnh — trang trí) */
 const PAYMENT_METHODS: { label: string; color?: string; img?: string }[] = [
   { label: "VNPAY", img: "/vnpay.png" },
-  { label: "MoMo", img: "/momo.png" },
   { label: "VISA", color: "#1a1f71" },
   { label: "Mastercard", color: "#eb001b" },
 ];

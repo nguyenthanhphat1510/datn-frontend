@@ -27,7 +27,7 @@ const steps = [
   {
     n: 5,
     title: "Chọn phương thức thanh toán",
-    desc: "Bạn có thể chọn thanh toán khi nhận hàng (COD), ví MoMo hoặc VNPay. Với MoMo/VNPay, bạn sẽ được chuyển sang cổng thanh toán để hoàn tất.",
+    desc: "Bạn có thể chọn thanh toán khi nhận hàng (COD) hoặc VNPay. Với VNPay, bạn sẽ được chuyển sang cổng thanh toán để hoàn tất.",
   },
   {
     n: 6,

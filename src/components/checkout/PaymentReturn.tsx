@@ -9,7 +9,7 @@ import type { PaymentReturnResult } from "@/services/orders";
 type Phase = "verifying" | "success" | "failed";
 
 interface PaymentReturnProps {
-  /** Hàm verify tương ứng cổng thanh toán (VNPay/MoMo). Nhận query string. */
+  /** Hàm verify tương ứng cổng thanh toán (VNPay). Nhận query string. */
   verify: (search: string) => Promise<PaymentReturnResult>;
 }
 
